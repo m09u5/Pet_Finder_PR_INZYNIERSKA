@@ -80,8 +80,9 @@ describe("POST /api/auth/register", () => {
         lastName: "Hodowca",
         breederProfile: {
           breedingName: "Hodowla Golden Dreams",
-          latitude: 52.2297,
-          longitude: 21.0122,
+          street: "ul. Warszawska 1",
+          city: "Warszawa",
+          postalCode: "00-001",
         },
       });
 

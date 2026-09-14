@@ -24,6 +24,9 @@ shared/dist/
 **/gcs-service-account.json
 *.key.json
 
+# image upload fallback
+backend/uploads/
+
 # Logs
 *.log
 npm-debug.log*

@@ -10,6 +10,7 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   FRONTEND_URL: z.string().url().default("http://localhost:3000"),
+  BACKEND_URL: z.string().url().default("http://localhost:4000"),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default("Pet Finder <onboarding@resend.dev>"),
   GCS_PROJECT_ID: z.string().optional(),

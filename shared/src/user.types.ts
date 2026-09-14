@@ -19,8 +19,11 @@ export interface PublicBreederProfile {
   breedingName: string;
   description: string | null;
   verificationStatus: VerificationStatus;
-  latitude: number;
-  longitude: number;
+  street: string;
+  city: string;
+  postalCode: string;
+  latitude: number | null;
+  longitude: number | null;
   createdAt: string;
 }
 

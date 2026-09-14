@@ -80,8 +80,9 @@ describe("GET /api/admin/breeders", () => {
         lastName: "Hodowca",
         breederProfile: {
           breedingName: "Hodowla Testowa",
-          latitude: 52.2297,
-          longitude: 21.0122,
+          street: "ul. Warszawska 1",
+          city: "Warszawa",
+          postalCode: "00-001",
         },
       });
 
@@ -133,8 +134,9 @@ describe("PATCH /api/admin/breeders/:id/verification", () => {
         lastName: "Hodowca",
         breederProfile: {
           breedingName: "Hodowla Do Weryfikacji",
-          latitude: 50.0647,
-          longitude: 19.945,
+          street: "ul. Kwiatowa 12",
+          city: "Kraków",
+          postalCode: "30-001",
         },
       });
 

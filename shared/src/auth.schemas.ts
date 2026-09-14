@@ -23,8 +23,9 @@ const baseRegisterFields = {
 const breederProfileSchema = z.object({
   breedingName: z.string().trim().min(2, "Nazwa hodowli jest wymagana").max(150),
   description: z.string().trim().max(2000).optional(),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
+  street: z.string().trim().min(1, "Ulica i numer są wymagane").max(150),
+  city: z.string().trim().min(1, "Miasto jest wymagane").max(100),
+  postalCode: z.string().trim().min(1, "Kod pocztowy jest wymagany").max(20),
 });
 
 export const registerSchema = z.discriminatedUnion("role", [
