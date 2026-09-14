@@ -1,6 +1,2 @@
 [install]
-# Prisma requires @prisma/client and the generated .prisma/client output to live
-# in the *same* node_modules directory. Bun's default isolated linker symlinks
-# packages into a central store, which breaks that assumption. Hoisted linking
-# (npm/yarn classic style) avoids the mismatch.
 linker = "hoisted"

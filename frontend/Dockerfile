@@ -1,4 +1,3 @@
-# Built from the monorepo root: `docker build -f frontend/Dockerfile .`
 FROM oven/bun:1 AS base
 WORKDIR /app
 
