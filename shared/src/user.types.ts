@@ -23,3 +23,12 @@ export interface PublicBreederProfile {
   longitude: number;
   createdAt: string;
 }
+
+export interface BreederProfileWithOwner extends PublicBreederProfile {
+  owner: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+}
