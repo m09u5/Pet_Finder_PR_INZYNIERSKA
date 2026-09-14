@@ -1,0 +1,28 @@
+{
+  "name": "pet-finder",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "devDependencies": {
+    "prisma": "^6.19.3",
+    "@prisma/client": "^6.19.3"
+  },
+  "scripts": {
+    "dev:backend": "bun --cwd backend run dev",
+    "dev:frontend": "bun --cwd frontend run dev",
+    "build:shared": "bun --cwd shared run build",
+    "db:migrate": "bun --cwd backend run db:migrate",
+    "db:seed": "bun --cwd backend run db:seed",
+    "test:backend": "bun --cwd backend run test",
+    "test:frontend": "bun --cwd frontend run test"
+  },
+  "trustedDependencies": [
+    "@prisma/client",
+    "@prisma/engines",
+    "esbuild",
+    "prisma"
+  ]
+}

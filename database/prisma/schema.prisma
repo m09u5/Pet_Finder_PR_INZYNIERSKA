@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  BREEDER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum AnimalSex {
+  MALE
+  FEMALE
+}
+
+enum AnimalStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+}
+
+enum OfferStatus {
+  ACTIVE
+  RESERVED
+  SOLD
+  INACTIVE
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  phone         String?
+  role          UserRole  @default(CUSTOMER)
+  emailVerified Boolean   @default(false)
+  latitude      Float?
+  longitude     Float?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  breederProfile          BreederProfile?
+  reservations            Reservation[]
+  conversationsAsCustomer Conversation[]        @relation("CustomerConversations")
+  conversationsAsBreeder  Conversation[]        @relation("BreederConversations")
+  messages                Message[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+
+  @@map("users")
+}
+
+model BreederProfile {
+  id                  String             @id @default(uuid())
+  userId              String             @unique
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  breedingName        String
+  description         String?
+  verificationStatus  VerificationStatus @default(PENDING)
+  latitude            Float
+  longitude           Float
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  animals Animal[]
+  offers  Offer[]
+
+  @@index([verificationStatus])
+  @@index([latitude, longitude])
+  @@map("breeder_profiles")
+}
+
+model Animal {
+  id          String       @id @default(uuid())
+  breederId   String
+  breeder     BreederProfile @relation(fields: [breederId], references: [id], onDelete: Cascade)
+  name        String
+  species     String
+  breed       String
+  sex         AnimalSex
+  birthDate   DateTime
+  description String?
+  motherName  String?
+  fatherName  String?
+  status      AnimalStatus @default(AVAILABLE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  offer        Offer?
+  reservations Reservation[]
+
+  @@index([species, breed])
+  @@index([breederId])
+  @@index([status])
+  @@map("animals")
+}
+
+model Offer {
+  id          String      @id @default(uuid())
+  breederId   String
+  breeder     BreederProfile @relation(fields: [breederId], references: [id], onDelete: Cascade)
+  animalId    String      @unique
+  animal      Animal      @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  price       Decimal     @db.Decimal(10, 2)
+  status      OfferStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  images        Image[]
+  conversations Conversation[]
+
+  @@index([status])
+  @@index([breederId])
+  @@index([price])
+  @@index([createdAt])
+  @@map("offers")
+}
+
+model Image {
+  id          String   @id @default(uuid())
+  offerId     String
+  offer       Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  url         String
+  storagePath String
+  createdAt   DateTime @default(now())
+
+  @@index([offerId])
+  @@map("images")
+}
+
+model Reservation {
+  id         String            @id @default(uuid())
+  animalId   String
+  animal     Animal            @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   User              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  status     ReservationStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([customerId])
+  @@index([animalId])
+  @@map("reservations")
+}
+
+model Conversation {
+  id         String   @id @default(uuid())
+  offerId    String
+  offer      Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   User     @relation("CustomerConversations", fields: [customerId], references: [id], onDelete: Cascade)
+  breederId  String
+  breeder    User     @relation("BreederConversations", fields: [breederId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  messages Message[]
+
+  @@unique([offerId, customerId])
+  @@index([customerId])
+  @@index([breederId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content        String
+  createdAt      DateTime     @default(now())
+  readAt         DateTime?
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
