@@ -16,6 +16,13 @@ export async function attachBreederProfile(req: Request, _res: Response, next: N
   next();
 }
 
+export async function attachBreederProfileIfPresent(req: Request, _res: Response, next: NextFunction) {
+  if (req.user?.role === "BREEDER") {
+    req.breederProfile = (await loadBreederProfile(req.user.id)) ?? undefined;
+  }
+  next();
+}
+
 export async function requireVerifiedBreeder(req: Request, _res: Response, next: NextFunction) {
   const profile = await loadBreederProfile(req.user!.id);
   if (!profile) {

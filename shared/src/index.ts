@@ -3,4 +3,6 @@ export * from "./auth.schemas";
 export * from "./breeder.schemas";
 export * from "./offer.schemas";
 export * from "./offer.types";
+export * from "./reservation.schemas";
+export * from "./reservation.types";
 export * from "./user.types";
