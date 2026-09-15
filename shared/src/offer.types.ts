@@ -43,3 +43,7 @@ export interface PublicOffer {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface PublicOfferSearchResult extends PublicOffer {
+  distanceKm: number | null;
+}
