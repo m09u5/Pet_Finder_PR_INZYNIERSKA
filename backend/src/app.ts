@@ -10,6 +10,7 @@ import { breedersRouter } from "./routes/breeders.routes";
 import { healthRouter } from "./routes/health.routes";
 import { imagesRouter } from "./routes/images.routes";
 import { offersRouter } from "./routes/offers.routes";
+import { reservationsRouter } from "./routes/reservations.routes";
 import { usersRouter } from "./routes/users.routes";
 
 export function createApp() {
@@ -27,6 +28,7 @@ export function createApp() {
   app.use("/api/breeders", breedersRouter);
   app.use("/api/offers", offersRouter);
   app.use("/api/images", imagesRouter);
+  app.use("/api/reservations", reservationsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

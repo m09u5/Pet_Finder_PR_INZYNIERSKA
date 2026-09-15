@@ -36,6 +36,8 @@ export function AnimalListItem({
   const [form, setForm] = useState<AnimalFormState>(() => toFormState(animal));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [reserving, setReserving] = useState(false);
+  const [reserveError, setReserveError] = useState<string | null>(null);
 
   const available = animal.status === "AVAILABLE";
 
@@ -58,6 +60,22 @@ export function AnimalListItem({
   async function handleDeleteImage(imageId: string) {
     await apiFetch(`/api/images/${imageId}`, { method: "DELETE" });
     await invalidateAll();
+  }
+
+  async function handleReserve() {
+    setReserveError(null);
+    setReserving(true);
+    try {
+      await apiFetch("/api/reservations", {
+        method: "POST",
+        body: JSON.stringify({ animalId: animal.id }),
+      });
+      await invalidateAll();
+    } catch (err) {
+      setReserveError(err instanceof ApiError ? err.message : "Nie udało się zarezerwować zwierzęcia");
+    } finally {
+      setReserving(false);
+    }
   }
 
   async function handleSave() {
@@ -128,9 +146,16 @@ export function AnimalListItem({
               <p className="text-sm text-gray-500">Zaloguj się, aby zarezerwować lub napisać do hodowcy.</p>
             )}
             {!editable && user?.role === "CUSTOMER" && available && (
-              <button className="bg-black text-white px-4 py-2 rounded opacity-50" disabled>
-                Zarezerwuj
-              </button>
+              <div>
+                <button
+                  onClick={handleReserve}
+                  disabled={reserving}
+                  className="bg-black text-white px-4 py-2 rounded disabled:opacity-50"
+                >
+                  {reserving ? "Rezerwowanie..." : "Zarezerwuj"}
+                </button>
+                {reserveError && <p className="text-red-600 text-sm mt-1">{reserveError}</p>}
+              </div>
             )}
             {!editable && user?.role === "CUSTOMER" && !available && (
               <span className="inline-block px-4 py-2 rounded bg-gray-200 text-gray-600">
