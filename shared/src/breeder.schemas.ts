@@ -12,3 +12,8 @@ export const updateVerificationStatusSchema = z.object({
   status: z.enum([VerificationStatus.VERIFIED, VerificationStatus.REJECTED]),
 });
 export type UpdateVerificationStatusInput = z.infer<typeof updateVerificationStatusSchema>;
+
+export const updateBreederProfileSchema = z.object({
+  description: z.string().trim().max(2000).optional(),
+});
+export type UpdateBreederProfileInput = z.infer<typeof updateBreederProfileSchema>;

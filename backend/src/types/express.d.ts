@@ -1,3 +1,4 @@
+import type { BreederProfile } from "@prisma/client";
 import type { UserRole } from "@pet-finder/shared";
 
 declare global {
@@ -8,6 +9,7 @@ declare global {
         role: UserRole;
         email: string;
       };
+      breederProfile?: BreederProfile;
     }
   }
 }

@@ -76,16 +76,19 @@ model BreederProfile {
   breedingName        String
   description         String?
   verificationStatus  VerificationStatus @default(PENDING)
-  latitude            Float
-  longitude           Float
+  street              String
+  city                String
+  postalCode          String
+  latitude            Float?
+  longitude           Float?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 
   animals Animal[]
-  offers  Offer[]
+  offer   Offer?
 
   @@index([verificationStatus])
-  @@index([latitude, longitude])
+  @@index([city])
   @@map("breeder_profiles")
 }
 
@@ -93,6 +96,8 @@ model Animal {
   id          String       @id @default(uuid())
   breederId   String
   breeder     BreederProfile @relation(fields: [breederId], references: [id], onDelete: Cascade)
+  offerId     String
+  offer       Offer        @relation(fields: [offerId], references: [id], onDelete: Cascade)
   name        String
   species     String
   breed       String
@@ -101,51 +106,52 @@ model Animal {
   description String?
   motherName  String?
   fatherName  String?
+  price       Decimal      @db.Decimal(10, 2)
   status      AnimalStatus @default(AVAILABLE)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  offer        Offer?
   reservations Reservation[]
+  images       Image[]
 
   @@index([species, breed])
   @@index([breederId])
+  @@index([offerId])
   @@index([status])
   @@map("animals")
 }
 
 model Offer {
   id          String      @id @default(uuid())
-  breederId   String
+  breederId   String      @unique
   breeder     BreederProfile @relation(fields: [breederId], references: [id], onDelete: Cascade)
-  animalId    String      @unique
-  animal      Animal      @relation(fields: [animalId], references: [id], onDelete: Cascade)
   title       String
   description String?
-  price       Decimal     @db.Decimal(10, 2)
   status      OfferStatus @default(ACTIVE)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  animals       Animal[]
   images        Image[]
   conversations Conversation[]
 
   @@index([status])
-  @@index([breederId])
-  @@index([price])
   @@index([createdAt])
   @@map("offers")
 }
 
 model Image {
   id          String   @id @default(uuid())
-  offerId     String
-  offer       Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  offerId     String?
+  offer       Offer?   @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  animalId    String?
+  animal      Animal?  @relation(fields: [animalId], references: [id], onDelete: Cascade)
   url         String
   storagePath String
   createdAt   DateTime @default(now())
 
   @@index([offerId])
+  @@index([animalId])
   @@map("images")
 }
 

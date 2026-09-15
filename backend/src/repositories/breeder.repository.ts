@@ -26,4 +26,7 @@ export const breederRepository = {
       include: { user: { select: ownerSelect } },
     });
   },
+  updateProfile(id: string, data: { description?: string }) {
+    return prisma.breederProfile.update({ where: { id }, data });
+  },
 };

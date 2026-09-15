@@ -35,8 +35,9 @@ export async function registerUser(input: RegisterInput) {
           userId: created.id,
           breedingName: input.breederProfile.breedingName,
           description: input.breederProfile.description,
-          latitude: input.breederProfile.latitude,
-          longitude: input.breederProfile.longitude,
+          street: input.breederProfile.street,
+          city: input.breederProfile.city,
+          postalCode: input.breederProfile.postalCode,
         },
       });
     }
