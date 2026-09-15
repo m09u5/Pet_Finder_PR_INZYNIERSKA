@@ -4,6 +4,7 @@ import { ConflictError, ForbiddenError, UnauthorizedError, BadRequestError } fro
 import { comparePassword, hashPassword } from "../utils/password";
 import { generateToken, hashToken } from "../utils/token";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.service";
+import { geocodeAddress } from "./geocoding.service";
 import { userRepository } from "../repositories/user.repository";
 
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -44,6 +45,17 @@ export async function registerUser(input: RegisterInput) {
 
     return created;
   });
+
+  if (input.role === "BREEDER") {
+    const geocoded = await geocodeAddress(
+      input.breederProfile.street,
+      input.breederProfile.city,
+      input.breederProfile.postalCode,
+    );
+    if (geocoded) {
+      await prisma.breederProfile.update({ where: { userId: user.id }, data: geocoded });
+    }
+  }
 
   await issueEmailVerificationToken(user.id, user.email);
 

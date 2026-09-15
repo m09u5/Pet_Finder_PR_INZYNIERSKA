@@ -9,7 +9,7 @@ export const listOffers = asyncHandler(async (req: Request, res: Response) => {
   const query = req.query as unknown as ListOffersQuery;
   const result = await offerService.listPublicOffers(query);
   res.json({
-    items: result.items.map(toPublicOffer),
+    items: result.items.map((entry) => ({ ...toPublicOffer(entry.offer), distanceKm: entry.distanceKm })),
     total: result.total,
     page: result.page,
     limit: result.limit,

@@ -54,6 +54,14 @@ const animalPayload = {
   price: 3500,
 };
 
+function uniqueSpecies(label: string) {
+  return `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function setBreederLocation(breederId: string, latitude: number, longitude: number) {
+  return prisma.breederProfile.update({ where: { id: breederId }, data: { latitude, longitude } });
+}
+
 let customerEmail: string;
 const customerPassword = "correct-horse-battery-staple";
 let pendingBreederEmail: string;
@@ -157,6 +165,158 @@ describe("POST /api/offers", () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("rejects adding an animal of a different species to an existing, single-species offer", async () => {
+    const breeder = await createVerifiedBreeder("species-guard");
+    const agent = await loginAgent(breeder.email, breeder.password);
+    await agent.post("/api/offers").send({ animal: { ...animalPayload, species: "cat" } });
+
+    const response = await agent.post("/api/offers").send({
+      animal: { ...animalPayload, name: "Rex", species: "dog" },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("SPECIES_MISMATCH");
+
+    const animalCount = await prisma.animal.count({ where: { breederId: breeder.profile.id } });
+    expect(animalCount).toBe(1);
+  });
+});
+
+describe("GET /api/offers - filtering, sorting, pagination", () => {
+  it("filters by species, excluding offers whose animals don't match", async () => {
+    const species = uniqueSpecies("papuga");
+    const matching = await createVerifiedBreeder("species-filter-match");
+    const other = await createVerifiedBreeder("species-filter-other");
+    await loginAgent(matching.email, matching.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species } }),
+    );
+    await loginAgent(other.email, other.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species: uniqueSpecies("chomik") } }),
+    );
+
+    const response = await request(app).get("/api/offers").query({ species });
+    expect(response.status).toBe(200);
+    const ids = response.body.items.map((item: { breederId: string }) => item.breederId);
+    expect(ids).toContain(matching.profile.id);
+    expect(ids).not.toContain(other.profile.id);
+  });
+
+  it("filters by price range against the offer's matching animal", async () => {
+    const species = uniqueSpecies("gryzon");
+    const cheap = await createVerifiedBreeder("price-filter-cheap");
+    const pricey = await createVerifiedBreeder("price-filter-pricey");
+    await loginAgent(cheap.email, cheap.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species, price: 100 } }),
+    );
+    await loginAgent(pricey.email, pricey.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species, price: 900 } }),
+    );
+
+    const response = await request(app).get("/api/offers").query({ species, minPrice: 500, maxPrice: 1000 });
+    const ids = response.body.items.map((item: { breederId: string }) => item.breederId);
+    expect(ids).toContain(pricey.profile.id);
+    expect(ids).not.toContain(cheap.profile.id);
+  });
+
+  it("filters by sex", async () => {
+    const species = uniqueSpecies("krolik");
+    const male = await createVerifiedBreeder("sex-filter-male");
+    const female = await createVerifiedBreeder("sex-filter-female");
+    await loginAgent(male.email, male.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species, sex: "MALE" } }),
+    );
+    await loginAgent(female.email, female.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species, sex: "FEMALE" } }),
+    );
+
+    const response = await request(app).get("/api/offers").query({ species, sex: "MALE" });
+    const ids = response.body.items.map((item: { breederId: string }) => item.breederId);
+    expect(ids).toContain(male.profile.id);
+    expect(ids).not.toContain(female.profile.id);
+  });
+
+  it("matches a keyword against the breeding name", async () => {
+    const breeder = await createVerifiedBreeder("keyword");
+    const agent = await loginAgent(breeder.email, breeder.password);
+    await agent.post("/api/offers").send({ animal: { ...animalPayload, species: uniqueSpecies("keyword-animal") } });
+
+    const response = await request(app).get("/api/offers").query({ q: breeder.profile.breedingName });
+    const ids = response.body.items.map((item: { breederId: string }) => item.breederId);
+    expect(ids).toContain(breeder.profile.id);
+  });
+
+  it("sorts by price ascending/descending using each offer's cheapest available animal", async () => {
+    const species = uniqueSpecies("sort");
+    const expensive = await createVerifiedBreeder("sort-expensive");
+    const cheap = await createVerifiedBreeder("sort-cheap");
+    await loginAgent(expensive.email, expensive.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species, price: 800 } }),
+    );
+    await loginAgent(cheap.email, cheap.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species, price: 100 } }),
+    );
+
+    const asc = await request(app).get("/api/offers").query({ species, sort: "price_asc" });
+    const ascIds = asc.body.items.map((item: { breederId: string }) => item.breederId);
+    expect(ascIds).toEqual([cheap.profile.id, expensive.profile.id]);
+
+    const desc = await request(app).get("/api/offers").query({ species, sort: "price_desc" });
+    const descIds = desc.body.items.map((item: { breederId: string }) => item.breederId);
+    expect(descIds).toEqual([expensive.profile.id, cheap.profile.id]);
+  });
+
+  it("filters by radius around a point and reports distanceKm, excluding offers outside the radius", async () => {
+    const species = uniqueSpecies("geo");
+    const near = await createVerifiedBreeder("geo-near");
+    const far = await createVerifiedBreeder("geo-far");
+    await loginAgent(near.email, near.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species } }),
+    );
+    await loginAgent(far.email, far.password).then((agent) =>
+      agent.post("/api/offers").send({ animal: { ...animalPayload, species } }),
+    );
+    await setBreederLocation(near.profile.id, 51.1079, 17.0385); // Wrocław
+    await setBreederLocation(far.profile.id, 52.2297, 21.0122); // Warszawa (~290km away)
+
+    const response = await request(app)
+      .get("/api/offers")
+      .query({ species, lat: 51.11, lng: 17.03, radiusKm: 50 });
+
+    const ids = response.body.items.map((item: { breederId: string }) => item.breederId);
+    expect(ids).toContain(near.profile.id);
+    expect(ids).not.toContain(far.profile.id);
+    const nearItem = response.body.items.find((item: { breederId: string }) => item.breederId === near.profile.id);
+    expect(nearItem.distanceKm).toBeLessThan(50);
+  });
+
+  it("rejects radiusKm without a location with 400", async () => {
+    const response = await request(app).get("/api/offers").query({ radiusKm: 20 });
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("rejects sort=distance without radiusKm with 400", async () => {
+    const response = await request(app).get("/api/offers").query({ sort: "distance" });
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("paginates results respecting page and limit", async () => {
+    const species = uniqueSpecies("page");
+    for (const label of ["page-a", "page-b", "page-c"]) {
+      const breeder = await createVerifiedBreeder(label);
+      const agent = await loginAgent(breeder.email, breeder.password);
+      await agent.post("/api/offers").send({ animal: { ...animalPayload, species } });
+    }
+
+    const firstPage = await request(app).get("/api/offers").query({ species, limit: 2, page: 1 });
+    const secondPage = await request(app).get("/api/offers").query({ species, limit: 2, page: 2 });
+
+    expect(firstPage.body.total).toBe(3);
+    expect(firstPage.body.items).toHaveLength(2);
+    expect(secondPage.body.items).toHaveLength(1);
   });
 });
 

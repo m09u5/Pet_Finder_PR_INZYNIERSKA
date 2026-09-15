@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import type { AnimalSex, OfferStatus } from "@pet-finder/shared";
 import { prisma } from "../config/prisma";
 
@@ -13,6 +14,8 @@ const offerInclude = {
       street: true,
       city: true,
       postalCode: true,
+      latitude: true,
+      longitude: true,
       verificationStatus: true,
     },
   },
@@ -49,17 +52,27 @@ export const offerRepository = {
   findByBreederId(breederId: string) {
     return prisma.offer.findUnique({ where: { breederId }, include: offerInclude });
   },
-  listActive(params: { skip: number; take: number }) {
+  listFiltered(where: Prisma.OfferWhereInput) {
     return prisma.offer.findMany({
-      where: { status: "ACTIVE" },
+      where,
       include: offerInclude,
       orderBy: { createdAt: "desc" },
-      skip: params.skip,
-      take: params.take,
     });
   },
-  countActive() {
-    return prisma.offer.count({ where: { status: "ACTIVE" } });
+  getDistancesForBreeders(breederIds: string[], originLat: number, originLng: number) {
+    if (breederIds.length === 0) return Promise.resolve([]);
+    return prisma.$queryRaw<Array<{ id: string; distance_km: number }>>`
+      SELECT id,
+        (6371 * acos(
+          LEAST(1, GREATEST(-1,
+            cos(radians(${originLat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${originLng}))
+            + sin(radians(${originLat})) * sin(radians(latitude))
+          ))
+        )) AS distance_km
+      FROM breeder_profiles
+      WHERE id IN (${Prisma.join(breederIds)})
+        AND latitude IS NOT NULL AND longitude IS NOT NULL
+    `;
   },
   createWithAnimal(input: { breederId: string; title: string; animal: AnimalFields }) {
     return prisma.offer.create({

@@ -16,6 +16,7 @@ const envSchema = z.object({
   GCS_PROJECT_ID: z.string().optional(),
   GCS_BUCKET_NAME: z.string().optional(),
   GCS_KEY_FILE: z.string().optional(),
+  NOMINATIM_USER_AGENT: z.string().default("PetFinderApp/1.0 (student thesis project)"),
 });
 
 const parsed = envSchema.safeParse(process.env);
