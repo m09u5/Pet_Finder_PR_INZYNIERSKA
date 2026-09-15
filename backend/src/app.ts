@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { adminRouter } from "./routes/admin.routes";
 import { authRouter } from "./routes/auth.routes";
 import { breedersRouter } from "./routes/breeders.routes";
+import { conversationsRouter } from "./routes/conversations.routes";
 import { healthRouter } from "./routes/health.routes";
 import { imagesRouter } from "./routes/images.routes";
 import { offersRouter } from "./routes/offers.routes";
@@ -29,6 +30,7 @@ export function createApp() {
   app.use("/api/offers", offersRouter);
   app.use("/api/images", imagesRouter);
   app.use("/api/reservations", reservationsRouter);
+  app.use("/api/conversations", conversationsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
