@@ -12,6 +12,9 @@ export function Navbar() {
         Pet Finder
       </Link>
       <Link href="/offers">Ogłoszenia</Link>
+      {!loading && (user?.role === "CUSTOMER" || user?.role === "BREEDER") && (
+        <Link href="/messages">Wiadomości</Link>
+      )}
       {!loading && user?.role === "CUSTOMER" && <Link href="/reservations">Moje rezerwacje</Link>}
       {!loading && user?.role === "BREEDER" && <Link href="/breeder/offers">Moja hodowla</Link>}
       {!loading && user?.role === "BREEDER" && <Link href="/breeder/reservations">Rezerwacje</Link>}
