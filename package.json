@@ -11,13 +11,13 @@
     "@prisma/client": "^6.19.3"
   },
   "scripts": {
-    "dev:backend": "bun --cwd backend run dev",
-    "dev:frontend": "bun --cwd frontend run dev",
-    "build:shared": "bun --cwd shared run build",
-    "db:migrate": "bun --cwd backend run db:migrate",
-    "db:seed": "bun --cwd backend run db:seed",
-    "test:backend": "bun --cwd backend run test",
-    "test:frontend": "bun --cwd frontend run test"
+    "dev:backend": "cd backend && bun run dev",
+    "dev:frontend": "cd frontend && bun run dev",
+    "build:shared": "cd shared && bun run build",
+    "db:migrate": "cd backend && bun run db:migrate",
+    "db:seed": "cd backend && bun run db:seed",
+    "test:backend": "cd backend && bun run test",
+    "test:frontend": "cd frontend && bun run test"
   },
   "trustedDependencies": [
     "@prisma/client",
