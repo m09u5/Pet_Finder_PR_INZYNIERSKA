@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
@@ -60,10 +60,19 @@ function buildQueryString(filters: Filters) {
   return params.toString();
 }
 
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timeout);
+  }, [value, delayMs]);
+  return debounced;
+}
+
 export default function OffersPage() {
   const [draft, setDraft] = useState<Filters>(emptyFilters);
-  const [applied, setApplied] = useState<Filters>(emptyFilters);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
+  const applied = useDebouncedValue(draft, 350);
 
   const hasLocation = (draft.lat !== null && draft.lng !== null) || draft.locationText.trim().length > 0;
 
@@ -95,20 +104,14 @@ export default function OffersPage() {
     );
   }
 
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setApplied(draft);
-  }
-
   function handleReset() {
     setDraft(emptyFilters);
-    setApplied(emptyFilters);
     setLocationStatus(null);
   }
 
   return (
     <div className="p-6">
-      <form onSubmit={handleSubmit} className="mb-6 space-y-3 border rounded p-4">
+      <div className="mb-6 space-y-3 border rounded p-4">
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
@@ -203,14 +206,11 @@ export default function OffersPage() {
             </option>
           </select>
 
-          <button type="submit" className="border rounded px-4 py-2 bg-gray-900 text-white">
-            Szukaj
-          </button>
           <button type="button" onClick={handleReset} className="border rounded px-4 py-2">
             Wyczyść
           </button>
         </div>
-      </form>
+      </div>
 
       {isLoading && <p>Ładowanie...</p>}
       {error && <p className="text-red-600">Nie udało się pobrać ogłoszeń.</p>}
