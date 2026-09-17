@@ -135,7 +135,7 @@ describe("POST /api/offers", () => {
     expect(response.body.offer.animals).toHaveLength(1);
     expect(response.body.offer.animals[0].breed).toBe("Ragdoll");
     expect(response.body.offer.animals[0].price).toBe(3500);
-    expect(response.body.offer.images).toEqual([{ id: "placeholder", url: "/placeholder-pet.svg" }]);
+    expect(response.body.offer.images).toEqual([{ id: "placeholder", url: "/placeholder-pet.jpeg" }]);
   });
 
   it("adds a second animal to the same, already-existing Offer instead of creating a new one", async () => {
@@ -330,7 +330,7 @@ describe("GET /api/offers and /api/offers/:id", () => {
     expect(response.status).toBe(200);
     const found = response.body.items.find((item: { id: string }) => item.id === createResponse.body.offer.id);
     expect(found).toBeDefined();
-    expect(found.images[0].url).toBe("/placeholder-pet.svg");
+    expect(found.images[0].url).toBe("/placeholder-pet.jpeg");
     expect(found.animals).toHaveLength(1);
   });
 
