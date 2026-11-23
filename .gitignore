@@ -45,7 +45,7 @@ test-results/
 .idea/
 .DS_Store
 
-docs/diagrams/
+docs/
 
 # Bun
 bun.lockb

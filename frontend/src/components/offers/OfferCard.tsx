@@ -1,14 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { PublicOffer, PublicOfferSearchResult } from "@pet-finder/shared";
+import type { OfferCardProps } from "./offer-card.types";
 
-export function OfferCard({
-  offer,
-  overlayText,
-}: {
-  offer: PublicOffer | PublicOfferSearchResult;
-  overlayText: string;
-}) {
+export function OfferCard({ offer, overlayText }: OfferCardProps) {
   return (
     <Link
       href={`/offers/${offer.id}`}
