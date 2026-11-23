@@ -1,7 +1,7 @@
 import type { Animal, BreederProfile, Image, Offer } from "@prisma/client";
 import type { PublicImage, PublicOffer } from "@pet-finder/shared";
 
-const PLACEHOLDER_IMAGE_URL = "/placeholder-pet.svg";
+const PLACEHOLDER_IMAGE_URL = "/placeholder-pet.jpeg";
 
 type AnimalWithImages = Animal & { images: Image[] };
 

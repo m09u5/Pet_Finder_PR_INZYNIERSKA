@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import type { PublicOfferSearchResult } from "@pet-finder/shared";
 import { apiFetch } from "@/lib/api";
@@ -69,8 +70,35 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debounced;
 }
 
+function filtersFromSearchParams(params: URLSearchParams): Filters {
+  const sex = params.get("sex");
+  const sort = params.get("sort");
+  return {
+    q: params.get("q") ?? "",
+    species: params.get("species") ?? "",
+    breed: params.get("breed") ?? "",
+    sex: sex === "MALE" || sex === "FEMALE" ? sex : "",
+    minPrice: params.get("minPrice") ?? "",
+    maxPrice: params.get("maxPrice") ?? "",
+    locationText: params.get("locationText") ?? "",
+    lat: params.get("lat") ? Number(params.get("lat")) : null,
+    lng: params.get("lng") ? Number(params.get("lng")) : null,
+    radiusKm: params.get("radiusKm") ?? "",
+    sort: sort === "price_asc" || sort === "price_desc" || sort === "distance" ? sort : "newest",
+  };
+}
+
 export default function OffersPage() {
-  const [draft, setDraft] = useState<Filters>(emptyFilters);
+  return (
+    <Suspense fallback={<p className="p-6">Ładowanie...</p>}>
+      <OffersPageContent />
+    </Suspense>
+  );
+}
+
+function OffersPageContent() {
+  const searchParams = useSearchParams();
+  const [draft, setDraft] = useState<Filters>(() => filtersFromSearchParams(searchParams));
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const applied = useDebouncedValue(draft, 350);
 
