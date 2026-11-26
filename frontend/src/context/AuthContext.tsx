@@ -3,13 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { PublicUser } from "@pet-finder/shared";
 import { apiFetch } from "@/lib/api";
-
-interface AuthContextValue {
-  user: PublicUser | null;
-  loading: boolean;
-  refresh: () => Promise<void>;
-  logout: () => Promise<void>;
-}
+import type { AuthContextValue } from "./auth-context.types";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 

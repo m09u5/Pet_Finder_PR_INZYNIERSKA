@@ -1,6 +1,6 @@
 import type { ClassValue } from "clsx";
 
-export type ButtonVariant = "primary" | "outline";
+export type ButtonVariant = "primary" | "outline" | "danger";
 
 export type ButtonSize = "sm" | "md";
 

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { useAuth } from "@/context/AuthContext";
-import { PersonIcon } from "@/components/ui/PersonIcon";
+import { PersonIcon } from "@/components/ui/icons/PersonIcon";
 import { buttonClass, containerClass, navLinkClass, surfaceBarClass } from "@/styles/theme";
-import { SearchBar } from "./SearchBar";
+import { SearchBar } from "@/components/navbar/search-bar/SearchBar";
 
 export function Navbar() {
   const { user, loading, logout } = useAuth();

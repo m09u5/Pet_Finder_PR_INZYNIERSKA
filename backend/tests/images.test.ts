@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/app";
 import { prisma } from "../src/config/prisma";
+import { deleteImage } from "../src/services/storage.service";
 import { hashPassword } from "../src/utils/password";
 
 const app = createApp();
@@ -59,7 +60,16 @@ async function createVerifiedBreederWithOffer(label: string) {
 const JPEG_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
 const NOT_AN_IMAGE = Buffer.from("this is definitely not an image file");
 
+async function removeUploadedFiles() {
+  const testBreeder = { breeder: { user: { email: { in: createdEmails } } } };
+  const images = await prisma.image.findMany({
+    where: { OR: [{ offer: testBreeder }, { animal: testBreeder }] },
+  });
+  await Promise.all(images.map((image) => deleteImage(image.storagePath)));
+}
+
 afterAll(async () => {
+  await removeUploadedFiles();
   await prisma.user.deleteMany({ where: { email: { in: createdEmails } } });
   await prisma.$disconnect();
 });
