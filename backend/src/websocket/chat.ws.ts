@@ -1,7 +1,7 @@
 import type { IncomingMessage, Server } from "node:http";
 import type { PublicMessage } from "@pet-finder/shared";
 import { WebSocket, WebSocketServer } from "ws";
-import { verifyAccessToken } from "../utils/jwt";
+import { readAccessToken } from "../utils/jwt";
 
 const connectionsByUserId = new Map<string, Set<WebSocket>>();
 
@@ -30,7 +30,7 @@ export function setupChatWebSocket(server: Server) {
 
     let userId: string;
     try {
-      userId = verifyAccessToken(token).sub;
+      userId = readAccessToken(token).sub;
     } catch {
       socket.close(4001, "Nieprawidłowy token");
       return;

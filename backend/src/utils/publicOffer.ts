@@ -1,22 +1,13 @@
-import type { Animal, BreederProfile, Image, Offer } from "@prisma/client";
+import type { Image } from "@prisma/client";
 import type { PublicImage, PublicOffer } from "@pet-finder/shared";
+import type { OfferWithRelations } from "../repositories/offer.repository";
+import { toPublicImage } from "./publicImage";
 
 const PLACEHOLDER_IMAGE_URL = "/placeholder-pet.jpeg";
 
-type AnimalWithImages = Animal & { images: Image[] };
-
-type OfferWithRelations = Offer & {
-  animals: AnimalWithImages[];
-  images: Image[];
-  breeder: Pick<
-    BreederProfile,
-    "id" | "userId" | "breedingName" | "description" | "street" | "city" | "postalCode" | "verificationStatus"
-  >;
-};
-
 function toPublicImages(images: Image[]): PublicImage[] {
   return images.length > 0
-    ? images.map((image) => ({ id: image.id, url: image.url }))
+    ? images.map(toPublicImage)
     : [{ id: "placeholder", url: PLACEHOLDER_IMAGE_URL }];
 }
 

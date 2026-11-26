@@ -1,31 +1,36 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
-import { AppError } from "../utils/AppError";
 import { env } from "../config/env";
+import { NotFoundError } from "../utils/AppError";
+import { HttpStatus } from "../utils/httpStatus";
+import { toAppError } from "../utils/toAppError";
 
-export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
+export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
+
   if (err instanceof ZodError) {
-    return res.status(400).json({
+    res.status(HttpStatus.BAD_REQUEST).json({
       error: {
         message: "Validation failed",
         code: "VALIDATION_ERROR",
         details: err.flatten().fieldErrors,
       },
     });
+    return;
   }
 
-  if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
-      error: {
-        message: err.message,
-        code: err.code,
-      },
-    });
+  const appError = toAppError(err);
+  if (appError) {
+    res.status(appError.statusCode).json({ error: { message: appError.message, code: appError.code } });
+    return;
   }
 
   console.error(`[unhandled error] ${req.method} ${req.path}:`, err);
 
-  return res.status(500).json({
+  res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
     error: {
       message: env.NODE_ENV === "production" ? "Internal server error" : (err as Error).message,
       code: "INTERNAL_ERROR",
@@ -33,6 +38,6 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   });
 }
 
-export function notFoundHandler(req: Request, res: Response) {
-  res.status(404).json({ error: { message: `Route ${req.method} ${req.path} not found`, code: "ROUTE_NOT_FOUND" } });
+export function notFoundHandler(req: Request, _res: Response, next: NextFunction) {
+  next(new NotFoundError(`Route ${req.method} ${req.path} not found`, "ROUTE_NOT_FOUND"));
 }

@@ -1,10 +1,5 @@
-import type { Animal, BreederProfile, Offer, Reservation, User } from "@prisma/client";
 import type { PublicReservation } from "@pet-finder/shared";
-
-type ReservationWithRelations = Reservation & {
-  animal: Animal & { offer: Pick<Offer, "id" | "title"> & { breeder: Pick<BreederProfile, "breedingName"> } };
-  customer: Pick<User, "id" | "firstName" | "lastName" | "email">;
-};
+import type { ReservationWithRelations } from "../repositories/reservation.repository";
 
 export function toPublicReservation(reservation: ReservationWithRelations): PublicReservation {
   return {

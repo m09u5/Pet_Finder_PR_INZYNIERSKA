@@ -107,6 +107,8 @@ describe("POST /api/conversations", () => {
     const first = await customer.agent.post("/api/conversations").send({ offerId: breeder.offer.id });
     const second = await customer.agent.post("/api/conversations").send({ offerId: breeder.offer.id });
 
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(200);
     expect(second.body.conversation.id).toBe(first.body.conversation.id);
     const count = await prisma.conversation.count({ where: { id: first.body.conversation.id } });
     expect(count).toBe(1);

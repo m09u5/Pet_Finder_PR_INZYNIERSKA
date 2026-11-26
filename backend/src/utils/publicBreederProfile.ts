@@ -1,11 +1,8 @@
-import type { BreederProfile, User } from "@prisma/client";
-import type { BreederProfileWithOwner } from "@pet-finder/shared";
+import type { BreederProfile } from "@prisma/client";
+import type { BreederProfileWithOwner, PublicBreederProfile } from "@pet-finder/shared";
+import type { BreederProfileWithUser } from "../repositories/breeder.repository";
 
-type BreederProfileWithUser = BreederProfile & {
-  user: Pick<User, "id" | "email" | "firstName" | "lastName">;
-};
-
-export function toPublicBreederProfile(breeder: BreederProfileWithUser): BreederProfileWithOwner {
+export function toPublicBreederProfile(breeder: BreederProfile): PublicBreederProfile {
   return {
     id: breeder.id,
     userId: breeder.userId,
@@ -18,6 +15,12 @@ export function toPublicBreederProfile(breeder: BreederProfileWithUser): Breeder
     latitude: breeder.latitude,
     longitude: breeder.longitude,
     createdAt: breeder.createdAt.toISOString(),
+  };
+}
+
+export function toBreederProfileWithOwner(breeder: BreederProfileWithUser): BreederProfileWithOwner {
+  return {
+    ...toPublicBreederProfile(breeder),
     owner: {
       id: breeder.user.id,
       email: breeder.user.email,

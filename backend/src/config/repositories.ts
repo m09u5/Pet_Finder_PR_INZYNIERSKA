@@ -1,0 +1,25 @@
+import type { BreederRepository } from "../repositories/breeder.repository";
+import type { ConversationRepository } from "../repositories/conversation.repository";
+import type { HealthRepository } from "../repositories/health.repository";
+import type { ImageRepository } from "../repositories/image.repository";
+import type { OfferRepository } from "../repositories/offer.repository";
+import { PrismaBreederRepository } from "../repositories/prisma/breeder.prisma";
+import { PrismaConversationRepository } from "../repositories/prisma/conversation.prisma";
+import { PrismaHealthRepository } from "../repositories/prisma/health.prisma";
+import { PrismaImageRepository } from "../repositories/prisma/image.prisma";
+import { PrismaOfferRepository } from "../repositories/prisma/offer.prisma";
+import { PrismaReservationRepository } from "../repositories/prisma/reservation.prisma";
+import { PrismaTokenRepository } from "../repositories/prisma/token.prisma";
+import { PrismaUserRepository } from "../repositories/prisma/user.prisma";
+import type { ReservationRepository } from "../repositories/reservation.repository";
+import type { TokenRepository } from "../repositories/token.repository";
+import type { UserRepository } from "../repositories/user.repository";
+
+export const breederRepository: BreederRepository = new PrismaBreederRepository();
+export const conversationRepository: ConversationRepository = new PrismaConversationRepository();
+export const healthRepository: HealthRepository = new PrismaHealthRepository();
+export const imageRepository: ImageRepository = new PrismaImageRepository();
+export const offerRepository: OfferRepository = new PrismaOfferRepository();
+export const reservationRepository: ReservationRepository = new PrismaReservationRepository();
+export const tokenRepository: TokenRepository = new PrismaTokenRepository();
+export const userRepository: UserRepository = new PrismaUserRepository();

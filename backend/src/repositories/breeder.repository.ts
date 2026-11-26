@@ -1,32 +1,27 @@
+import type { BreederProfile, User } from "@prisma/client";
 import type { VerificationStatus } from "@pet-finder/shared";
-import { prisma } from "../config/prisma";
 
-const ownerSelect = { id: true, email: true, firstName: true, lastName: true } as const;
-
-export const breederRepository = {
-  list(params: { status?: VerificationStatus; skip: number; take: number }) {
-    return prisma.breederProfile.findMany({
-      where: params.status ? { verificationStatus: params.status } : undefined,
-      include: { user: { select: ownerSelect } },
-      orderBy: { createdAt: "asc" },
-      skip: params.skip,
-      take: params.take,
-    });
-  },
-  count(status?: VerificationStatus) {
-    return prisma.breederProfile.count({ where: status ? { verificationStatus: status } : undefined });
-  },
-  findById(id: string) {
-    return prisma.breederProfile.findUnique({ where: { id } });
-  },
-  updateVerificationStatus(id: string, status: VerificationStatus) {
-    return prisma.breederProfile.update({
-      where: { id },
-      data: { verificationStatus: status },
-      include: { user: { select: ownerSelect } },
-    });
-  },
-  updateProfile(id: string, data: { description?: string }) {
-    return prisma.breederProfile.update({ where: { id }, data });
-  },
+export type BreederProfileWithUser = BreederProfile & {
+  user: Pick<User, "id" | "email" | "firstName" | "lastName">;
 };
+
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
+export interface BreederListParams {
+  status?: VerificationStatus;
+  skip: number;
+  take: number;
+}
+
+export interface BreederRepository {
+  list(params: BreederListParams): Promise<BreederProfileWithUser[]>;
+  count(status?: VerificationStatus): Promise<number>;
+  findById(id: string): Promise<BreederProfile | null>;
+  findByUserId(userId: string): Promise<BreederProfile | null>;
+  updateVerificationStatus(id: string, status: VerificationStatus): Promise<BreederProfileWithUser>;
+  updateProfile(id: string, data: { description?: string }): Promise<BreederProfile>;
+  updateCoordinates(userId: string, coordinates: Coordinates): Promise<BreederProfile>;
+}

@@ -1,6 +1,7 @@
 import jwt, { type SignOptions } from "jsonwebtoken";
 import type { UserRole } from "@pet-finder/shared";
 import { env } from "../config/env";
+import { UnauthorizedError } from "./AppError";
 
 export interface AccessTokenPayload {
   sub: string;
@@ -24,10 +25,24 @@ export function signRefreshToken(payload: RefreshTokenPayload): string {
   });
 }
 
-export function verifyAccessToken(token: string): AccessTokenPayload {
-  return jwt.verify(token, env.JWT_ACCESS_SECRET) as AccessTokenPayload;
+export function readAccessToken(token: string | undefined): AccessTokenPayload {
+  if (!token) {
+    throw new UnauthorizedError("zaloguj sie", "NOT_AUTHENTICATED");
+  }
+  try {
+    return jwt.verify(token, env.JWT_ACCESS_SECRET) as AccessTokenPayload;
+  } catch {
+    throw new UnauthorizedError("sesja wygasla zaloguj sie ponownie", "INVALID_TOKEN");
+  }
 }
 
-export function verifyRefreshToken(token: string): RefreshTokenPayload {
-  return jwt.verify(token, env.JWT_REFRESH_SECRET) as RefreshTokenPayload;
+export function readRefreshToken(token: string | undefined): RefreshTokenPayload {
+  if (!token) {
+    throw new UnauthorizedError("Brak sesji do odświeżenia", "NOT_AUTHENTICATED");
+  }
+  try {
+    return jwt.verify(token, env.JWT_REFRESH_SECRET) as RefreshTokenPayload;
+  } catch {
+    throw new UnauthorizedError("Sesja wygasła, prosze zalogowac się ponownie", "INVALID_TOKEN");
+  }
 }

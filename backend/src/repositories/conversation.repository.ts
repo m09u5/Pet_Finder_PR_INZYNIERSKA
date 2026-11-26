@@ -1,59 +1,19 @@
-import { prisma } from "../config/prisma";
+import type { BreederProfile, Conversation, Message, Offer, User } from "@prisma/client";
 
-const conversationInclude = {
-  offer: { select: { id: true, title: true, breeder: { select: { breedingName: true } } } },
-  customer: { select: { id: true, firstName: true, lastName: true } },
-  messages: { orderBy: { createdAt: "desc" as const }, take: 1 },
-} as const;
-
-export const conversationRepository = {
-  findByOfferAndCustomer(offerId: string, customerId: string) {
-    return prisma.conversation.findUnique({
-      where: { offerId_customerId: { offerId, customerId } },
-      include: conversationInclude,
-    });
-  },
-  create(offerId: string, customerId: string, breederId: string) {
-    return prisma.conversation.create({
-      data: { offerId, customerId, breederId },
-      include: conversationInclude,
-    });
-  },
-  findById(id: string) {
-    return prisma.conversation.findUnique({ where: { id }, include: conversationInclude });
-  },
-  listForCustomer(customerId: string) {
-    return prisma.conversation.findMany({
-      where: { customerId },
-      include: conversationInclude,
-      orderBy: { createdAt: "desc" },
-    });
-  },
-  listForBreeder(breederUserId: string) {
-    return prisma.conversation.findMany({
-      where: { breederId: breederUserId },
-      include: conversationInclude,
-      orderBy: { createdAt: "desc" },
-    });
-  },
-  listMessages(conversationId: string, params: { skip: number; take: number }) {
-    return prisma.message.findMany({
-      where: { conversationId },
-      orderBy: { createdAt: "asc" },
-      skip: params.skip,
-      take: params.take,
-    });
-  },
-  countMessages(conversationId: string) {
-    return prisma.message.count({ where: { conversationId } });
-  },
-  createMessage(conversationId: string, senderId: string, content: string) {
-    return prisma.message.create({ data: { conversationId, senderId, content } });
-  },
-  markMessagesRead(conversationId: string, readerId: string) {
-    return prisma.message.updateMany({
-      where: { conversationId, senderId: { not: readerId }, readAt: null },
-      data: { readAt: new Date() },
-    });
-  },
+export type ConversationWithRelations = Conversation & {
+  offer: Pick<Offer, "id" | "title"> & { breeder: Pick<BreederProfile, "breedingName"> };
+  customer: Pick<User, "id" | "firstName" | "lastName">;
+  messages: Message[];
 };
+
+export interface ConversationRepository {
+  findById(id: string): Promise<ConversationWithRelations | null>;
+  findByOfferAndCustomer(offerId: string, customerId: string): Promise<ConversationWithRelations | null>;
+  create(offerId: string, customerId: string, breederUserId: string): Promise<ConversationWithRelations>;
+  listForCustomer(customerId: string): Promise<ConversationWithRelations[]>;
+  listForBreeder(breederUserId: string): Promise<ConversationWithRelations[]>;
+  listMessages(conversationId: string, params: { skip: number; take: number }): Promise<Message[]>;
+  countMessages(conversationId: string): Promise<number>;
+  createMessage(conversationId: string, senderId: string, content: string): Promise<Message>;
+  markMessagesRead(conversationId: string, readerId: string): Promise<void>;
+}

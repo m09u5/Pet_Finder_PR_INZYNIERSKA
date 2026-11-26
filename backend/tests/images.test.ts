@@ -145,6 +145,28 @@ describe("POST /api/offers/:id/animals/:animalId/images", () => {
   });
 });
 
+describe("upload limits", () => {
+  it("returns 413 for a file over the size limit", async () => {
+    const breeder = await createVerifiedBreederWithOffer("too-large");
+    const response = await breeder.agent
+      .post(`/api/offers/${breeder.offer.id}/images`)
+      .attach("images", Buffer.alloc(5 * 1024 * 1024 + 1), "huge.jpg");
+
+    expect(response.status).toBe(413);
+    expect(response.body.error.code).toBe("FILE_TOO_LARGE");
+  });
+
+  it("returns 400 for an unexpected file field", async () => {
+    const breeder = await createVerifiedBreederWithOffer("wrong-field");
+    const response = await breeder.agent
+      .post(`/api/offers/${breeder.offer.id}/images`)
+      .attach("photo", JPEG_BYTES, "photo.jpg");
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("INVALID_UPLOAD");
+  });
+});
+
 describe("DELETE /api/images/:id", () => {
   it("returns 403 when a different breeder tries to delete the image", async () => {
     const breeder = await createVerifiedBreederWithOffer("delete-owner");

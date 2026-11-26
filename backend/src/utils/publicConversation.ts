@@ -1,12 +1,6 @@
-import type { BreederProfile, Conversation, Message, Offer, User } from "@prisma/client";
 import type { PublicConversation } from "@pet-finder/shared";
+import type { ConversationWithRelations } from "../repositories/conversation.repository";
 import { toPublicMessage } from "./publicMessage";
-
-type ConversationWithRelations = Conversation & {
-  offer: Pick<Offer, "id" | "title"> & { breeder: Pick<BreederProfile, "breedingName"> };
-  customer: Pick<User, "id" | "firstName" | "lastName">;
-  messages: Message[];
-};
 
 export function toPublicConversation(conversation: ConversationWithRelations): PublicConversation {
   return {
