@@ -1,6 +1,6 @@
-import { OfferDetailClient } from "./OfferDetailClient";
+import { OfferDetail } from "@/components/offers/offer-detail/OfferDetail";
 
 export default async function OfferDetailPage({ params }: PageProps<"/offers/[id]">) {
   const { id } = await params;
-  return <OfferDetailClient id={id} />;
+  return <OfferDetail offerId={id} />;
 }

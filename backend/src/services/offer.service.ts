@@ -2,13 +2,30 @@ import type { Prisma } from "@prisma/client";
 import { OfferSort, type AddAnimalInput, type ListOffersQuery, type UpdateAnimalInput } from "@pet-finder/shared";
 import { offerRepository } from "../repositories/offer.repository";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../utils/AppError";
+import { getSpeciesAliases } from "../utils/speciesKeywords";
 import { geocodeQuery } from "./geocoding.service";
+
+function speciesConditions(term: string): Prisma.AnimalWhereInput[] {
+  return [
+    { species: { contains: term, mode: "insensitive" } },
+    ...getSpeciesAliases(term).map((alias) => ({ species: { equals: alias, mode: "insensitive" as const } })),
+  ];
+}
+
+function keywordCondition(term: string): Prisma.OfferWhereInput {
+  return {
+    OR: [
+      { breeder: { breedingName: { contains: term, mode: "insensitive" } } },
+      { animals: { some: { OR: [...speciesConditions(term), { breed: { contains: term, mode: "insensitive" } }] } } },
+    ],
+  };
+}
 
 function buildOfferWhere(query: ListOffersQuery): Prisma.OfferWhereInput {
   const animalFilters: Prisma.AnimalWhereInput = {
     status: "AVAILABLE",
     ...(query.sex && { sex: query.sex }),
-    ...(query.species && { species: { contains: query.species, mode: "insensitive" } }),
+    ...(query.species && { OR: speciesConditions(query.species) }),
     ...(query.breed && { breed: { contains: query.breed, mode: "insensitive" } }),
     ...((query.minPrice !== undefined || query.maxPrice !== undefined) && {
       price: {
@@ -21,21 +38,7 @@ function buildOfferWhere(query: ListOffersQuery): Prisma.OfferWhereInput {
   return {
     status: "ACTIVE",
     animals: { some: animalFilters },
-    ...(query.q && {
-      OR: [
-        { breeder: { breedingName: { contains: query.q, mode: "insensitive" } } },
-        {
-          animals: {
-            some: {
-              OR: [
-                { species: { contains: query.q, mode: "insensitive" } },
-                { breed: { contains: query.q, mode: "insensitive" } },
-              ],
-            },
-          },
-        },
-      ],
-    }),
+    ...(query.q && { AND: query.q.split(/\s+/).map(keywordCondition) }),
   };
 }
 

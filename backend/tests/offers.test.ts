@@ -247,6 +247,25 @@ describe("GET /api/offers - filtering, sorting, pagination", () => {
     expect(ids).toContain(breeder.profile.id);
   });
 
+  it("matches Polish species keywords against the stored species, combined with other words", async () => {
+    const label = `species-keyword-${Date.now()}`;
+    const breeder = await createVerifiedBreeder(label);
+    const agent = await loginAgent(breeder.email, breeder.password);
+    await agent.post("/api/offers").send({ animal: { ...animalPayload, species: "cat" } });
+
+    const search = async (params: Record<string, string>) => {
+      const response = await request(app).get("/api/offers").query({ limit: 100, ...params });
+      return response.body.items.map((item: { breederId: string }) => item.breederId);
+    };
+
+    expect(await search({ q: `kot ${label}` })).toContain(breeder.profile.id);
+    expect(await search({ q: `Kocięta ${label}` })).toContain(breeder.profile.id);
+    expect(await search({ q: `kocieta ragdoll ${label}` })).toContain(breeder.profile.id);
+    expect(await search({ q: label, species: "kot" })).toContain(breeder.profile.id);
+    expect(await search({ q: `pies ${label}` })).not.toContain(breeder.profile.id);
+    expect(await search({ q: label, species: "pies" })).not.toContain(breeder.profile.id);
+  });
+
   it("sorts by price ascending/descending using each offer's cheapest available animal", async () => {
     const species = uniqueSpecies("sort");
     const expensive = await createVerifiedBreeder("sort-expensive");
