@@ -22,6 +22,7 @@ export interface PublicBreederProfile {
   street: string;
   city: string;
   postalCode: string;
+  logoUrl: string | null;
   latitude: number | null;
   longitude: number | null;
   createdAt: string;

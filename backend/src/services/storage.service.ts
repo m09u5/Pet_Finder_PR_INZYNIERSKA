@@ -17,11 +17,15 @@ export interface UploadedImage {
   storagePath: string;
 }
 
-export async function uploadImage(buffer: Buffer, extension: string, mimeType: string): Promise<UploadedImage> {
-  const filename = `${crypto.randomUUID()}.${extension}`;
+export async function uploadImage(
+  buffer: Buffer,
+  extension: string,
+  mimeType: string,
+  folder: string,
+): Promise<UploadedImage> {
+  const storagePath = `${folder}/${crypto.randomUUID()}.${extension}`;
 
   if (gcsClient) {
-    const storagePath = `images/${filename}`;
     const bucket = gcsClient.bucket(env.GCS_BUCKET_NAME!);
     await bucket.file(storagePath).save(buffer, { contentType: mimeType });
     return {
@@ -30,11 +34,12 @@ export async function uploadImage(buffer: Buffer, extension: string, mimeType: s
     };
   }
 
-  await fs.mkdir(UPLOADS_DIR, { recursive: true });
-  await fs.writeFile(path.join(UPLOADS_DIR, filename), buffer);
+  const filePath = path.join(UPLOADS_DIR, storagePath);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, buffer);
   return {
-    url: `${env.BACKEND_URL}/uploads/${filename}`,
-    storagePath: filename,
+    url: `${env.BACKEND_URL}/uploads/${storagePath}`,
+    storagePath,
   };
 }
 

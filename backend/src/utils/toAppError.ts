@@ -27,7 +27,7 @@ function fromMulterError(error: MulterError) {
     return new PayloadTooLargeError(`Plik jest zbyt duży (maksymalnie ${MAX_IMAGE_SIZE_MB} MB)`, "FILE_TOO_LARGE");
   }
   return new BadRequestError(
-    `Nieprawidłowe przesyłanie plików (maksymalnie ${MAX_IMAGE_COUNT} w polu "images")`,
+    `Nieprawidłowe przesyłanie plików (złe pole lub więcej niż ${MAX_IMAGE_COUNT} zdjęć)`,
     "INVALID_UPLOAD",
   );
 }

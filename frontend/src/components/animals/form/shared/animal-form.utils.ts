@@ -9,6 +9,8 @@ export const EMPTY_ANIMAL_FORM: AnimalFormState = {
   breed: "",
   sex: "FEMALE",
   birthDate: "",
+  motherName: "",
+  fatherName: "",
 };
 
 export function toAnimalFormState(animal: PublicAnimal): AnimalFormState {
@@ -20,6 +22,8 @@ export function toAnimalFormState(animal: PublicAnimal): AnimalFormState {
     breed: animal.breed,
     sex: animal.sex,
     birthDate: animal.birthDate.slice(0, 10),
+    motherName: animal.motherName ?? "",
+    fatherName: animal.fatherName ?? "",
   };
 }
 
@@ -31,6 +35,8 @@ export function toAnimalPayload(form: AnimalFormState) {
     sex: form.sex,
     birthDate: form.birthDate,
     description: form.description || undefined,
+    motherName: form.motherName,
+    fatherName: form.fatherName,
     price: Number(form.price),
   };
 }

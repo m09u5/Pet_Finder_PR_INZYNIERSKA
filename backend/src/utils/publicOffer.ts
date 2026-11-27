@@ -41,6 +41,7 @@ export function toPublicOffer(offer: OfferWithRelations): PublicOffer {
       street: offer.breeder.street,
       city: offer.breeder.city,
       postalCode: offer.breeder.postalCode,
+      logoUrl: offer.breeder.logoUrl,
       verificationStatus: offer.breeder.verificationStatus,
     },
     createdAt: offer.createdAt.toISOString(),

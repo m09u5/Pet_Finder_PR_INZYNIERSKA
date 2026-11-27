@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import type { CreateReservationInput } from "@pet-finder/shared";
+import type { CreateReservationInput, PayReservationInput } from "@pet-finder/shared";
 import * as reservationService from "../services/reservation.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import { HttpStatus } from "../utils/httpStatus";
@@ -19,6 +19,17 @@ export const listMyReservations = asyncHandler(async (req: Request, res: Respons
 export const listIncomingReservations = asyncHandler(async (req: Request, res: Response) => {
   const reservations = await reservationService.listIncomingReservations(req.breederProfile!.id);
   res.status(HttpStatus.OK).json({ reservations: reservations.map(toPublicReservation) });
+});
+
+export const getMyReservation = asyncHandler(async (req: Request, res: Response) => {
+  const reservation = await reservationService.getMyReservation(req.params.id, req.user!.id);
+  res.status(HttpStatus.OK).json({ reservation: toPublicReservation(reservation) });
+});
+
+export const payReservation = asyncHandler(async (req: Request, res: Response) => {
+  const input = req.body as PayReservationInput;
+  const reservation = await reservationService.payReservation(req.params.id, req.user!.id, input);
+  res.status(HttpStatus.OK).json({ reservation: toPublicReservation(reservation) });
 });
 
 export const confirmReservation = asyncHandler(async (req: Request, res: Response) => {

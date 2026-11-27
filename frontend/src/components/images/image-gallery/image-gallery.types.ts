@@ -1,8 +1,13 @@
+import type { ReactNode } from "react";
 import type { PublicImage } from "@pet-finder/shared";
+
+export type ImageGalleryVariant = "hero" | "square";
 
 export interface ImageGalleryProps {
   images: PublicImage[];
   alt: string;
+  variant: ImageGalleryVariant;
+  toolbar?: ReactNode;
   onDeleteAction?: (imageId: string) => void;
 }
 

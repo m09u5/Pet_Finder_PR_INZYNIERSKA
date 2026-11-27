@@ -13,5 +13,8 @@ export async function removeUploadedFiles(emails: string[]) {
   const images = await prisma.image.findMany({
     where: { OR: [{ offer: testBreeder }, { animal: testBreeder }] },
   });
-  await Promise.all(images.map((image) => deleteImage(image.storagePath)));
+  const breeders = await prisma.breederProfile.findMany({ where: { user: { email: { in: emails } } } });
+  const logoPaths = breeders.flatMap((breeder) => breeder.logoStoragePath ?? []);
+
+  await Promise.all([...images.map((image) => image.storagePath), ...logoPaths].map(deleteImage));
 }

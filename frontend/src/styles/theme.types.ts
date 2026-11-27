@@ -10,3 +10,8 @@ export interface ButtonClassOptions {
   fullWidth?: boolean;
   className?: ClassValue;
 }
+
+export interface IconButtonClassOptions {
+  tone?: "default" | "danger";
+  className?: string;
+}

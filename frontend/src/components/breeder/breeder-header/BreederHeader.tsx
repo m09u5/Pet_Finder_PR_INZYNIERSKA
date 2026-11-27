@@ -1,6 +1,7 @@
+import clsx from "clsx";
 import { BreederDescription } from "@/components/breeder/breeder-description/BreederDescription";
-import { STATIC_BREEDER_RATING } from "@/lib/staticRating";
-import { mutedTextClass } from "@/styles/theme";
+import { BreederLogo } from "@/components/breeder/breeder-logo/BreederLogo";
+import { whiteBoxClass } from "@/styles/theme";
 import type { BreederHeaderProps } from "./breeder-header.types";
 
 export function BreederHeader({
@@ -8,22 +9,30 @@ export function BreederHeader({
   verificationStatus,
   street,
   city,
-  postalCode,
   description,
+  logoUrl,
   editable,
 }: BreederHeaderProps) {
   return (
-    <div className="mb-6">
-      <div className="flex items-center gap-2">
-        <h1 className="text-xl font-medium">{breedingName}</h1>
-        {verificationStatus === "VERIFIED" && (
-          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Zweryfikowana hodowla</span>
-        )}
+    <div className="flex flex-col gap-6">
+      <div className="flex gap-5">
+        <BreederLogo logoUrl={logoUrl} breedingName={breedingName} editable={editable} />
+        <div className="min-w-0 pt-8">
+          <h1 className="text-2xl break-words">{breedingName}</h1>
+          {verificationStatus === "VERIFIED" && (
+            <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+              Zweryfikowana hodowla
+            </span>
+          )}
+        </div>
       </div>
-      <p className={mutedTextClass}>★ {STATIC_BREEDER_RATING}</p>
-      <p className={mutedTextClass}>
-        {street}, {postalCode} {city}
-      </p>
+
+      <address className={clsx(whiteBoxClass, "not-italic text-xl")}>
+        {city},
+        <br />
+        {street}
+      </address>
+
       <BreederDescription description={description} editable={editable} />
     </div>
   );

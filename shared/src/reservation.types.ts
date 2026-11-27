@@ -4,6 +4,11 @@ export interface PublicReservation {
   id: string;
   status: ReservationStatus;
   createdAt: string;
+  pickupDate: string | null;
+  paidAt: string | null;
+  paymentDeadline: string;
+  isExpired: boolean;
+  depositAmount: number;
   animal: {
     id: string;
     name: string;
@@ -15,6 +20,9 @@ export interface PublicReservation {
     id: string;
     title: string;
     breedingName: string;
+    street: string;
+    city: string;
+    postalCode: string;
   };
   customer: {
     id: string;

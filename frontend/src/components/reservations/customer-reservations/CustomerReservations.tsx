@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { ReservationCard } from "@/components/reservations/reservation-card/ReservationCard";
 import { ReservationList } from "@/components/reservations/reservation-list/ReservationList";
+import { formatPrice, getReservationStage } from "@/components/reservations/shared/reservation.utils";
 import { buttonClass } from "@/styles/theme";
 import { useCustomerReservations } from "./useCustomerReservations";
 
@@ -21,8 +23,17 @@ export function CustomerReservations() {
         <ReservationCard
           key={reservation.id}
           reservation={reservation}
-          details={`${reservation.offer.breedingName} · ${reservation.animal.price} zł`}
+          details={`${reservation.offer.breedingName} · ${formatPrice(reservation.animal.price)}`}
         >
+          <Link
+            href={`/reservations/${reservation.id}`}
+            className={buttonClass({
+              variant: getReservationStage(reservation) === "UNPAID" ? "primary" : "outline",
+              size: "sm",
+            })}
+          >
+            {getReservationStage(reservation) === "UNPAID" ? "Opłać" : "Szczegóły"}
+          </Link>
           {reservation.status === "PENDING" && (
             <button
               type="button"

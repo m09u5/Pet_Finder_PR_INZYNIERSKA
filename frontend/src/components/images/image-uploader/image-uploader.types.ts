@@ -1,5 +1,3 @@
-import type { ChangeEvent } from "react";
-
 export interface ImageUploaderProps {
   uploadUrl: string;
 }
@@ -7,5 +5,5 @@ export interface ImageUploaderProps {
 export interface UseImageUploadResult {
   uploading: boolean;
   error: string | null;
-  upload: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  upload: (files: File[]) => Promise<void>;
 }

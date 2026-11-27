@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useInvalidateOffers } from "@/hooks/useInvalidateOffers";
+import { useInvalidateBreeder } from "@/hooks/useInvalidateBreeder";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { UseEditDescriptionResult } from "./breeder-description.types";
 
 export function useEditDescription(description: string | null): UseEditDescriptionResult {
-  const queryClient = useQueryClient();
-  const invalidateOffers = useInvalidateOffers();
+  const invalidateBreeder = useInvalidateBreeder();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(description ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -26,8 +24,7 @@ export function useEditDescription(description: string | null): UseEditDescripti
         method: "PATCH",
         body: JSON.stringify({ description: draft || undefined }),
       });
-      await queryClient.invalidateQueries({ queryKey: ["my-breeder-profile"] });
-      await invalidateOffers();
+      await invalidateBreeder();
       setIsEditing(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Nie udało się zapisać opisu");

@@ -1,6 +1,7 @@
-import type { PublicOffer } from "@pet-finder/shared";
+import type { PublicOffer, PublicOfferBreeder } from "@pet-finder/shared";
 
 export interface OfferViewProps {
-  offer: PublicOffer;
+  offer: PublicOffer | null;
+  breeder: PublicOfferBreeder;
   isOwner: boolean;
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import clsx from "clsx";
-import { buttonClass, errorTextClass } from "@/styles/theme";
+import { CameraIcon } from "@/components/ui/icons/CameraIcon";
+import { IconUploadButton } from "@/components/ui/icon-upload-button/IconUploadButton";
+import { floatingMessageClass } from "@/styles/theme";
 import type { ImageUploaderProps } from "./image-uploader.types";
 import { useImageUpload } from "./useImageUpload";
 
@@ -9,12 +10,12 @@ export function ImageUploader({ uploadUrl }: ImageUploaderProps) {
   const { uploading, error, upload } = useImageUpload(uploadUrl);
 
   return (
-    <div className="mt-2">
-      <label className={buttonClass({ variant: "outline", size: "sm", className: "cursor-pointer" })}>
-        {uploading ? "Przesyłanie..." : "Dodaj zdjęcia"}
-        <input type="file" accept="image/*" multiple onChange={upload} disabled={uploading} className="hidden" />
-      </label>
-      {error && <p className={clsx(errorTextClass, "mt-1")}>{error}</p>}
+    <div className="relative">
+      <IconUploadButton label="Dodaj zdjęcia" multiple disabled={uploading} onSelectAction={upload}>
+        <CameraIcon />
+      </IconUploadButton>
+      {uploading && <p className={floatingMessageClass()}>Przesyłanie...</p>}
+      {error && <p className={floatingMessageClass("text-red-600")}>{error}</p>}
     </div>
   );
 }

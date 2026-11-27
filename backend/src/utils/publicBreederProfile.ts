@@ -12,6 +12,7 @@ export function toPublicBreederProfile(breeder: BreederProfile): PublicBreederPr
     street: breeder.street,
     city: breeder.city,
     postalCode: breeder.postalCode,
+    logoUrl: breeder.logoUrl,
     latitude: breeder.latitude,
     longitude: breeder.longitude,
     createdAt: breeder.createdAt.toISOString(),

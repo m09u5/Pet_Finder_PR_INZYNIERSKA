@@ -8,6 +8,7 @@ export interface PublicOfferBreeder {
   street: string;
   city: string;
   postalCode: string;
+  logoUrl: string | null;
   verificationStatus: VerificationStatus;
 }
 

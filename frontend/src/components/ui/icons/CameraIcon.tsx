@@ -1,0 +1,18 @@
+export function CameraIcon() {
+  return (
+    <svg
+      aria-hidden
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 8h3l2-3h6l2 3h3v11H4Z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </svg>
+  );
+}
