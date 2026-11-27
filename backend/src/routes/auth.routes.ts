@@ -10,15 +10,18 @@ import {
 } from "@pet-finder/shared";
 import * as authController from "../controllers/auth.controller";
 import { validateBody, validateQuery } from "../middleware/validate";
+import { TooManyRequestsError } from "../utils/AppError";
 
 export const authRouter = Router();
-
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (_req, _res, next) => {
+    next(new TooManyRequestsError("Zbyt wiele prób, spróbuj ponownie za kilka minut", "TOO_MANY_REQUESTS"));
+  },
 });
 
 authRouter.post("/register", authLimiter, validateBody(registerSchema), authController.register);

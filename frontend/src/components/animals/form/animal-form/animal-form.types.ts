@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { AnimalFieldsProps } from "@/components/animals/form/shared/animal-form-shared.types";
 
 export interface AnimalFormProps extends AnimalFieldsProps {
@@ -6,4 +7,5 @@ export interface AnimalFormProps extends AnimalFieldsProps {
   submitLabel: string;
   onSubmitAction: () => void;
   onCancelAction: () => void;
+  children?: ReactNode;
 }

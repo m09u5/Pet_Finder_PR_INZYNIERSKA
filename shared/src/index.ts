@@ -8,3 +8,4 @@ export * from "./offer.types";
 export * from "./reservation.schemas";
 export * from "./reservation.types";
 export * from "./user.types";
+export * from "./image.constants";

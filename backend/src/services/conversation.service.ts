@@ -1,39 +1,30 @@
 import type { CreateConversationInput, ListMessagesQuery, SendMessageInput, UserRole } from "@pet-finder/shared";
-import { offerRepository } from "../repositories/offer.repository";
-import { conversationRepository } from "../repositories/conversation.repository";
-import { ForbiddenError, NotFoundError } from "../utils/AppError";
+import { conversationRepository, offerRepository } from "../config/repositories";
 import { toPublicMessage } from "../utils/publicMessage";
+import { assertParticipant, requireActiveOffer } from "../utils/validators/conversation.validators";
+import { requireFound } from "../utils/validators/found.validators";
 import { pushMessageToUsers } from "../websocket/chat.ws";
 
-function assertParticipant(conversation: { customerId: string; breederId: string }, userId: string) {
-  if (conversation.customerId !== userId && conversation.breederId !== userId) {
-    throw new ForbiddenError("Brak dostępu do tej rozmowy", "NOT_PARTICIPANT");
-  }
-}
-
 export async function startConversation(customerId: string, input: CreateConversationInput) {
-  const offer = await offerRepository.findById(input.offerId);
-  if (!offer || offer.status !== "ACTIVE") {
-    throw new NotFoundError("Ogłoszenie nie istnieje");
-  }
+  const offer = requireActiveOffer(await offerRepository.findById(input.offerId));
 
   const existing = await conversationRepository.findByOfferAndCustomer(input.offerId, customerId);
   if (existing) {
-    return existing;
+    return { conversation: existing, created: false };
   }
 
-  return conversationRepository.create(input.offerId, customerId, offer.breeder.userId);
+  const conversation = await conversationRepository.create(input.offerId, customerId, offer.breeder.userId);
+  return { conversation, created: true };
 }
 
 export function listMyConversations(userId: string, role: UserRole) {
-  return role === "BREEDER" ? conversationRepository.listForBreeder(userId) : conversationRepository.listForCustomer(userId);
+  return role === "BREEDER"
+    ? conversationRepository.listForBreeder(userId)
+    : conversationRepository.listForCustomer(userId);
 }
 
 export async function getConversation(conversationId: string, userId: string) {
-  const conversation = await conversationRepository.findById(conversationId);
-  if (!conversation) {
-    throw new NotFoundError("Rozmowa nie istnieje");
-  }
+  const conversation = requireFound(await conversationRepository.findById(conversationId), "Rozmowa nie istnieje");
   assertParticipant(conversation, userId);
   return conversation;
 }
@@ -54,7 +45,6 @@ export async function listMessages(conversationId: string, userId: string, query
 export async function sendMessage(conversationId: string, senderId: string, input: SendMessageInput) {
   const conversation = await getConversation(conversationId, senderId);
   const message = await conversationRepository.createMessage(conversationId, senderId, input.content);
-  const publicMessage = toPublicMessage(message);
-  pushMessageToUsers([conversation.customerId, conversation.breederId], publicMessage);
+  pushMessageToUsers([conversation.customerId, conversation.breederId], toPublicMessage(message));
   return message;
 }

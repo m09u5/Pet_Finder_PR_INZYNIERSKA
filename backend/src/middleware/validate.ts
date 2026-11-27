@@ -3,24 +3,14 @@ import type { ZodSchema } from "zod";
 
 export function validateBody(schema: ZodSchema) {
   return (req: Request, _res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      next(result.error);
-      return;
-    }
-    req.body = result.data;
+    req.body = schema.parse(req.body);
     next();
   };
 }
 
 export function validateQuery(schema: ZodSchema) {
   return (req: Request, _res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.query);
-    if (!result.success) {
-      next(result.error);
-      return;
-    }
-    Object.assign(req.query, result.data);
+    Object.assign(req.query, schema.parse(req.query));
     next();
   };
 }

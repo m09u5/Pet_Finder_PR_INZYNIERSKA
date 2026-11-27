@@ -1,6 +1,6 @@
-import type { ListBreedersQuery, UpdateVerificationStatusInput } from "@pet-finder/shared";
-import { breederRepository } from "../repositories/breeder.repository";
-import { NotFoundError } from "../utils/AppError";
+import type { ListBreedersQuery, UpdateBreederProfileInput, UpdateVerificationStatusInput } from "@pet-finder/shared";
+import { breederRepository } from "../config/repositories";
+import { requireFound } from "../utils/validators/found.validators";
 
 export async function listBreedersForAdmin(query: ListBreedersQuery) {
   const skip = (query.page - 1) * query.limit;
@@ -12,9 +12,10 @@ export async function listBreedersForAdmin(query: ListBreedersQuery) {
 }
 
 export async function setBreederVerificationStatus(breederId: string, input: UpdateVerificationStatusInput) {
-  const breeder = await breederRepository.findById(breederId);
-  if (!breeder) {
-    throw new NotFoundError("Profil hodowcy nie istnieje");
-  }
+  requireFound(await breederRepository.findById(breederId), "Profil hodowcy nie istnieje");
   return breederRepository.updateVerificationStatus(breederId, input.status);
+}
+
+export function updateBreederProfile(breederId: string, input: UpdateBreederProfileInput) {
+  return breederRepository.updateProfile(breederId, input);
 }

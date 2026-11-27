@@ -5,6 +5,7 @@ import * as offersController from "../controllers/offers.controller";
 import { authenticate } from "../middleware/authenticate";
 import { authorize } from "../middleware/authorize";
 import { attachBreederProfile, requireVerifiedBreeder } from "../middleware/breederProfile";
+import { parseJsonField } from "../middleware/parseJsonField";
 import { uploadImages } from "../middleware/upload";
 import { validateBody, validateQuery } from "../middleware/validate";
 
@@ -19,6 +20,8 @@ offersRouter.post(
   authenticate,
   authorize(UserRole.BREEDER),
   requireVerifiedBreeder,
+  uploadImages,
+  parseJsonField("animal"),
   validateBody(addAnimalSchema),
   offersController.addAnimal,
 );

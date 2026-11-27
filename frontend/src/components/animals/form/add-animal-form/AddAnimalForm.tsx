@@ -2,6 +2,7 @@
 
 import { buttonClass } from "@/styles/theme";
 import { AnimalForm } from "@/components/animals/form/animal-form/AnimalForm";
+import { AnimalPhotoPicker } from "@/components/animals/form/animal-photo-picker/AnimalPhotoPicker";
 import { useAddAnimal } from "./useAddAnimal";
 
 export function AddAnimalForm() {
@@ -24,6 +25,13 @@ export function AddAnimalForm() {
       onChangeAction={controller.setField}
       onSubmitAction={controller.submit}
       onCancelAction={controller.cancel}
-    />
+    >
+      <AnimalPhotoPicker
+        photos={controller.photos}
+        disabled={controller.saving}
+        onAddAction={controller.addPhotos}
+        onRemoveAction={controller.removePhoto}
+      />
+    </AnimalForm>
   );
 }

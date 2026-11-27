@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { prisma } from "../config/prisma";
+import { healthRepository } from "../config/repositories";
 import { asyncHandler } from "../utils/asyncHandler";
 
 export const healthRouter = Router();
@@ -7,7 +7,7 @@ export const healthRouter = Router();
 healthRouter.get(
   "/",
   asyncHandler(async (_req, res) => {
-    await prisma.$queryRaw`SELECT 1`;
+    await healthRepository.ping();
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   }),
 );

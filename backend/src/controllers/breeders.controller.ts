@@ -1,31 +1,16 @@
 import type { Request, Response } from "express";
-import type { BreederProfile } from "@prisma/client";
 import type { UpdateBreederProfileInput } from "@pet-finder/shared";
-import { breederRepository } from "../repositories/breeder.repository";
+import * as breederService from "../services/breeder.service";
 import { asyncHandler } from "../utils/asyncHandler";
-
-function toPublicBreederProfile(profile: BreederProfile) {
-  return {
-    id: profile.id,
-    userId: profile.userId,
-    breedingName: profile.breedingName,
-    description: profile.description,
-    verificationStatus: profile.verificationStatus,
-    street: profile.street,
-    city: profile.city,
-    postalCode: profile.postalCode,
-    latitude: profile.latitude,
-    longitude: profile.longitude,
-    createdAt: profile.createdAt.toISOString(),
-  };
-}
+import { HttpStatus } from "../utils/httpStatus";
+import { toPublicBreederProfile } from "../utils/publicBreederProfile";
 
 export const getMyBreederProfile = asyncHandler(async (req: Request, res: Response) => {
-  res.json({ breeder: toPublicBreederProfile(req.breederProfile!) });
+  res.status(HttpStatus.OK).json({ breeder: toPublicBreederProfile(req.breederProfile!) });
 });
 
 export const updateMyBreederProfile = asyncHandler(async (req: Request, res: Response) => {
   const input = req.body as UpdateBreederProfileInput;
-  const updated = await breederRepository.updateProfile(req.breederProfile!.id, input);
-  res.json({ breeder: toPublicBreederProfile(updated) });
+  const breeder = await breederService.updateBreederProfile(req.breederProfile!.id, input);
+  res.status(HttpStatus.OK).json({ breeder: toPublicBreederProfile(breeder) });
 });

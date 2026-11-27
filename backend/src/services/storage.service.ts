@@ -4,10 +4,10 @@ import path from "node:path";
 import { Storage } from "@google-cloud/storage";
 import { env } from "../config/env";
 
-const gcsConfigured = Boolean(env.GCS_PROJECT_ID && env.GCS_BUCKET_NAME && env.GCS_KEY_FILE);
+const gcsConfigured = env.NODE_ENV !== "test" && Boolean(env.GCS_PROJECT_ID && env.GCS_BUCKET_NAME);
 
 const gcsClient = gcsConfigured
-  ? new Storage({ projectId: env.GCS_PROJECT_ID, keyFilename: env.GCS_KEY_FILE })
+  ? new Storage({ projectId: env.GCS_PROJECT_ID, keyFilename: env.GCS_KEY_FILE || undefined })
   : null;
 
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");

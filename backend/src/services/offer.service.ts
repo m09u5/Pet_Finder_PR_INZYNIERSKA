@@ -1,67 +1,39 @@
-import type { Prisma } from "@prisma/client";
 import { OfferSort, type AddAnimalInput, type ListOffersQuery, type UpdateAnimalInput } from "@pet-finder/shared";
-import { offerRepository } from "../repositories/offer.repository";
-import { BadRequestError, ForbiddenError, NotFoundError } from "../utils/AppError";
-import { getSpeciesAliases } from "../utils/speciesKeywords";
+import { offerRepository } from "../config/repositories";
+import { requireFound } from "../utils/validators/found.validators";
+import { assertHasFiles } from "../utils/validators/image.validators";
+import {
+  assertOfferOwner,
+  assertSameSpecies,
+  requireAnimalInOffer,
+  requireSearchCenter,
+} from "../utils/validators/offer.validators";
 import { geocodeQuery } from "./geocoding.service";
-
-function speciesConditions(term: string): Prisma.AnimalWhereInput[] {
-  return [
-    { species: { contains: term, mode: "insensitive" } },
-    ...getSpeciesAliases(term).map((alias) => ({ species: { equals: alias, mode: "insensitive" as const } })),
-  ];
-}
-
-function keywordCondition(term: string): Prisma.OfferWhereInput {
-  return {
-    OR: [
-      { breeder: { breedingName: { contains: term, mode: "insensitive" } } },
-      { animals: { some: { OR: [...speciesConditions(term), { breed: { contains: term, mode: "insensitive" } }] } } },
-    ],
-  };
-}
-
-function buildOfferWhere(query: ListOffersQuery): Prisma.OfferWhereInput {
-  const animalFilters: Prisma.AnimalWhereInput = {
-    status: "AVAILABLE",
-    ...(query.sex && { sex: query.sex }),
-    ...(query.species && { OR: speciesConditions(query.species) }),
-    ...(query.breed && { breed: { contains: query.breed, mode: "insensitive" } }),
-    ...((query.minPrice !== undefined || query.maxPrice !== undefined) && {
-      price: {
-        ...(query.minPrice !== undefined && { gte: query.minPrice }),
-        ...(query.maxPrice !== undefined && { lte: query.maxPrice }),
-      },
-    }),
-  };
-
-  return {
-    status: "ACTIVE",
-    animals: { some: animalFilters },
-    ...(query.q && { AND: query.q.split(/\s+/).map(keywordCondition) }),
-  };
-}
+import { saveWithStoredImages } from "./image.service";
 
 export async function listPublicOffers(query: ListOffersQuery) {
-  const where = buildOfferWhere(query);
-  const offers = await offerRepository.listFiltered(where);
+  const offers = await offerRepository.search({
+    keywords: query.q,
+    species: query.species,
+    breed: query.breed,
+    sex: query.sex,
+    minPrice: query.minPrice,
+    maxPrice: query.maxPrice,
+  });
 
   let distanceById: Map<string, number> | null = null;
   if (query.radiusKm !== undefined) {
-    const center =
+    const center = requireSearchCenter(
       query.lat !== undefined && query.lng !== undefined
         ? { latitude: query.lat, longitude: query.lng }
         : query.locationText
           ? await geocodeQuery(query.locationText)
-          : null;
-
-    if (!center) {
-      throw new BadRequestError("Nie udało się ustalić podanej lokalizacji", "LOCATION_NOT_FOUND");
-    }
+          : null,
+    );
 
     const breederIds = [...new Set(offers.map((offer) => offer.breederId))];
-    const distances = await offerRepository.getDistancesForBreeders(breederIds, center.latitude, center.longitude);
-    distanceById = new Map(distances.map((entry) => [entry.id, entry.distance_km]));
+    const distances = await offerRepository.getDistancesForBreeders(breederIds, center);
+    distanceById = new Map(distances.map((entry) => [entry.breederId, entry.distanceKm]));
   }
 
   const radiusKm = query.radiusKm;
@@ -107,54 +79,47 @@ export async function listPublicOffers(query: ListOffersQuery) {
 }
 
 export async function getOfferById(id: string) {
-  const offer = await offerRepository.findById(id);
-  if (!offer) {
-    throw new NotFoundError("Ogłoszenie nie istnieje");
-  }
-  return offer;
+  return requireFound(await offerRepository.findById(id), "Ogłoszenie nie istnieje");
 }
 
 export function getMyOffer(breederId: string) {
   return offerRepository.findByBreederId(breederId);
 }
 
-export async function addAnimal(breederId: string, breedingName: string, input: AddAnimalInput) {
+export async function addAnimal(
+  breederId: string,
+  breedingName: string,
+  input: AddAnimalInput,
+  files: Express.Multer.File[],
+) {
+  assertHasFiles(files, "Dodaj co najmniej jedno zdjęcie zwierzęcia");
   const existingOffer = await offerRepository.findByBreederId(breederId);
   if (existingOffer) {
-    const existingSpecies = existingOffer.animals.at(0)?.species;
-    if (existingSpecies && existingSpecies.toLowerCase() !== input.animal.species.toLowerCase()) {
-      throw new BadRequestError(`Ta hodowla oferuje wyłącznie gatunek: ${existingSpecies}`, "SPECIES_MISMATCH");
-    }
-    await offerRepository.addAnimal(existingOffer.id, breederId, input.animal);
-    return offerRepository.findById(existingOffer.id);
+    assertSameSpecies(existingOffer, input.animal.species);
   }
-  const title = `Zwierzęta z hodowli ${breedingName}`;
-  return offerRepository.createWithAnimal({ breederId, title, animal: input.animal });
+
+  const offerId = await saveWithStoredImages(files, async (images) => {
+    if (existingOffer) {
+      await offerRepository.addAnimal(existingOffer.id, breederId, input.animal, images);
+      return existingOffer.id;
+    }
+    const title = `Zwierzęta z hodowli ${breedingName}`;
+    const offer = await offerRepository.createWithAnimal({ breederId, title, animal: input.animal, images });
+    return offer.id;
+  });
+
+  return getOfferById(offerId);
 }
 
 export async function updateAnimal(offerId: string, animalId: string, breederId: string, input: UpdateAnimalInput) {
-  const offer = await offerRepository.findById(offerId);
-  if (!offer) {
-    throw new NotFoundError("Ogłoszenie nie istnieje");
-  }
-  if (offer.breederId !== breederId) {
-    throw new ForbiddenError("To nie jest Twoje ogłoszenie", "NOT_OWNER");
-  }
-  const animal = offer.animals.find((item) => item.id === animalId);
-  if (!animal) {
-    throw new NotFoundError("Zwierzę nie istnieje w tym ogłoszeniu");
-  }
+  const offer = await getOfferById(offerId);
+  assertOfferOwner(offer, breederId);
+  requireAnimalInOffer(offer, animalId);
   await offerRepository.updateAnimal(animalId, input);
-  return offerRepository.findById(offerId);
+  return getOfferById(offerId);
 }
 
 export async function deactivateOffer(offerId: string, breederId: string) {
-  const offer = await offerRepository.findById(offerId);
-  if (!offer) {
-    throw new NotFoundError("Ogłoszenie nie istnieje");
-  }
-  if (offer.breederId !== breederId) {
-    throw new ForbiddenError("To nie jest Twoje ogłoszenie", "NOT_OWNER");
-  }
+  assertOfferOwner(await getOfferById(offerId), breederId);
   return offerRepository.updateStatus(offerId, "INACTIVE");
 }

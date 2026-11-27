@@ -1,10 +1,26 @@
-import { prisma } from "../config/prisma";
+import type { User } from "@prisma/client";
+import type { UserRole } from "@pet-finder/shared";
 
-export const userRepository = {
-  findByEmail(email: string) {
-    return prisma.user.findUnique({ where: { email } });
-  },
-  findById(id: string) {
-    return prisma.user.findUnique({ where: { id } });
-  },
-};
+export interface NewBreederProfile {
+  breedingName: string;
+  description?: string;
+  street: string;
+  city: string;
+  postalCode: string;
+}
+
+export interface NewUser {
+  email: string;
+  passwordHash: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  role: UserRole;
+  breederProfile?: NewBreederProfile;
+}
+
+export interface UserRepository {
+  findByEmail(email: string): Promise<User | null>;
+  findById(id: string): Promise<User | null>;
+  create(user: NewUser): Promise<User>;
+}
