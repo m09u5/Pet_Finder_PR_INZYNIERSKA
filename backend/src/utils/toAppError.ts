@@ -1,6 +1,6 @@
+import { MAX_IMAGE_COUNT, MAX_IMAGE_SIZE_MB } from "@pet-finder/shared";
 import { Prisma } from "@prisma/client";
 import { MulterError } from "multer";
-import { MAX_FILE_SIZE_MB, MAX_FILES } from "../config/upload";
 import { AppError, BadRequestError, ConflictError, NotFoundError, PayloadTooLargeError } from "./AppError";
 
 interface BodyParserError extends Error {
@@ -24,10 +24,10 @@ function fromBodyParserError(error: BodyParserError) {
 
 function fromMulterError(error: MulterError) {
   if (error.code === "LIMIT_FILE_SIZE") {
-    return new PayloadTooLargeError(`Plik jest zbyt duży (maksymalnie ${MAX_FILE_SIZE_MB} MB)`, "FILE_TOO_LARGE");
+    return new PayloadTooLargeError(`Plik jest zbyt duży (maksymalnie ${MAX_IMAGE_SIZE_MB} MB)`, "FILE_TOO_LARGE");
   }
   return new BadRequestError(
-    `Nieprawidłowe przesyłanie plików (maksymalnie ${MAX_FILES} w polu "images")`,
+    `Nieprawidłowe przesyłanie plików (maksymalnie ${MAX_IMAGE_COUNT} w polu "images")`,
     "INVALID_UPLOAD",
   );
 }

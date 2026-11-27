@@ -12,10 +12,12 @@ export function AnimalForm({
   onChangeAction,
   onSubmitAction,
   onCancelAction,
+  children,
 }: AnimalFormProps) {
   return (
     <div className="flex flex-col gap-2">
       <AnimalFormFields form={form} onChangeAction={onChangeAction} />
+      {children}
       {error && <p className="text-red-600 text-sm">{error}</p>}
       <div className="flex gap-2 mt-1">
         <button type="button" onClick={onSubmitAction} disabled={saving} className={buttonClass()}>

@@ -3,6 +3,7 @@ import request from "supertest";
 import { createApp } from "../src/app";
 import { prisma } from "../src/config/prisma";
 import { hashPassword } from "../src/utils/password";
+import { postAnimal, removeUploadedFiles } from "./helpers/animals";
 
 const app = createApp();
 const createdEmails: string[] = [];
@@ -60,20 +61,19 @@ async function createVerifiedBreederWithAnimal(label: string) {
     },
   });
   const agent = await loginAgent(email, password);
-  const createResponse = await agent.post("/api/offers").send({
-    animal: {
+  const createResponse = await postAnimal(agent, {
       name: "Luna",
       species: "cat",
       breed: "Ragdoll",
       sex: "FEMALE",
       birthDate: "2024-03-15",
       price: 3500,
-    },
-  });
+    });
   return { email, password, user, profile, agent, offer: createResponse.body.offer };
 }
 
 afterAll(async () => {
+  await removeUploadedFiles(createdEmails);
   await prisma.user.deleteMany({ where: { email: { in: createdEmails } } });
   await prisma.$disconnect();
 });

@@ -1,3 +1,5 @@
+import type { ApiErrorBody } from "./api.types";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 export class ApiError extends Error {
@@ -9,6 +11,12 @@ export class ApiError extends Error {
     this.status = status;
     this.code = code;
   }
+}
+
+function toApiError(status: number, body: ApiErrorBody) {
+  const fieldMessages = Object.values(body.error?.details ?? {}).flat();
+  const message = fieldMessages.length > 0 ? fieldMessages.join("\n") : (body.error?.message ?? "Wystąpił błąd");
+  return new ApiError(status, message, body.error?.code);
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -28,7 +36,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new ApiError(response.status, data?.error?.message ?? "Wystąpił błąd", data?.error?.code);
+    throw toApiError(response.status, data);
   }
 
   return data as T;
@@ -44,7 +52,7 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new ApiError(response.status, data?.error?.message ?? "Wystąpił błąd", data?.error?.code);
+    throw toApiError(response.status, data);
   }
 
   return data as T;

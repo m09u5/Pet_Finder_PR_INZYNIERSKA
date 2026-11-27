@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { OfferStatus } from "@pet-finder/shared";
 import { prisma } from "../../config/prisma";
 import type { Coordinates } from "../breeder.repository";
+import type { StoredImage } from "../image.repository";
 import type { AnimalFields, NewOffer, OfferRepository, OfferSearchCriteria } from "../offer.repository";
 import { buildOfferWhere } from "./offer.filters";
 
@@ -71,25 +72,26 @@ export class PrismaOfferRepository implements OfferRepository {
     `;
   }
 
-  createWithAnimal({ breederId, title, animal }: NewOffer) {
+  createWithAnimal({ breederId, title, animal, images }: NewOffer) {
     return prisma.offer.create({
       data: {
         breeder: { connect: { id: breederId } },
         title,
         animals: {
-          create: { breeder: { connect: { id: breederId } }, ...toAnimalData(animal) },
+          create: { breeder: { connect: { id: breederId } }, ...toAnimalData(animal), images: { create: images } },
         },
       },
       include: offerInclude,
     });
   }
 
-  addAnimal(offerId: string, breederId: string, animal: AnimalFields) {
+  addAnimal(offerId: string, breederId: string, animal: AnimalFields, images: StoredImage[]) {
     return prisma.animal.create({
       data: {
         breeder: { connect: { id: breederId } },
         offer: { connect: { id: offerId } },
         ...toAnimalData(animal),
+        images: { create: images },
       },
     });
   }

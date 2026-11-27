@@ -9,8 +9,12 @@ export class PrismaImageRepository implements ImageRepository {
     });
   }
 
-  create(image: NewImage) {
-    return prisma.image.create({ data: image });
+  countByAnimalId(animalId: string) {
+    return prisma.image.count({ where: { animalId } });
+  }
+
+  createMany(images: NewImage[]) {
+    return prisma.$transaction(images.map((image) => prisma.image.create({ data: image })));
   }
 
   async delete(id: string) {

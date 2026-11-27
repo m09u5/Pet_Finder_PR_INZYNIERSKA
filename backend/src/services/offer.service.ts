@@ -1,6 +1,7 @@
 import { OfferSort, type AddAnimalInput, type ListOffersQuery, type UpdateAnimalInput } from "@pet-finder/shared";
 import { offerRepository } from "../config/repositories";
 import { requireFound } from "../utils/validators/found.validators";
+import { assertHasFiles } from "../utils/validators/image.validators";
 import {
   assertOfferOwner,
   assertSameSpecies,
@@ -8,6 +9,7 @@ import {
   requireSearchCenter,
 } from "../utils/validators/offer.validators";
 import { geocodeQuery } from "./geocoding.service";
+import { saveWithStoredImages } from "./image.service";
 
 export async function listPublicOffers(query: ListOffersQuery) {
   const offers = await offerRepository.search({
@@ -84,15 +86,29 @@ export function getMyOffer(breederId: string) {
   return offerRepository.findByBreederId(breederId);
 }
 
-export async function addAnimal(breederId: string, breedingName: string, input: AddAnimalInput) {
+export async function addAnimal(
+  breederId: string,
+  breedingName: string,
+  input: AddAnimalInput,
+  files: Express.Multer.File[],
+) {
+  assertHasFiles(files, "Dodaj co najmniej jedno zdjęcie zwierzęcia");
   const existingOffer = await offerRepository.findByBreederId(breederId);
   if (existingOffer) {
     assertSameSpecies(existingOffer, input.animal.species);
-    await offerRepository.addAnimal(existingOffer.id, breederId, input.animal);
-    return getOfferById(existingOffer.id);
   }
-  const title = `Zwierzęta z hodowli ${breedingName}`;
-  return offerRepository.createWithAnimal({ breederId, title, animal: input.animal });
+
+  const offerId = await saveWithStoredImages(files, async (images) => {
+    if (existingOffer) {
+      await offerRepository.addAnimal(existingOffer.id, breederId, input.animal, images);
+      return existingOffer.id;
+    }
+    const title = `Zwierzęta z hodowli ${breedingName}`;
+    const offer = await offerRepository.createWithAnimal({ breederId, title, animal: input.animal, images });
+    return offer.id;
+  });
+
+  return getOfferById(offerId);
 }
 
 export async function updateAnimal(offerId: string, animalId: string, breederId: string, input: UpdateAnimalInput) {

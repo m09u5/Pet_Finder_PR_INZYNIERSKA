@@ -25,7 +25,7 @@ export const listCardClass = clsx("border border-gray-200 rounded p-3 flex justi
 
 export const mutedTextClass = clsx("text-sm text-gray-500");
 
-export const errorTextClass = clsx("text-sm text-red-600");
+export const errorTextClass = clsx("text-sm text-red-600 whitespace-pre-line");
 
 export function buttonClass({ variant = "primary", size = "md", fullWidth = false, className }: ButtonClassOptions = {}) {
   return clsx(

@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import type { AddAnimalInput, ListOffersQuery, UpdateAnimalInput } from "@pet-finder/shared";
 import * as offerService from "../services/offer.service";
 import { asyncHandler } from "../utils/asyncHandler";
+import { getUploadedFiles } from "../utils/uploadedFiles";
 import { HttpStatus } from "../utils/httpStatus";
 import { toPublicOffer } from "../utils/publicOffer";
 
@@ -28,7 +29,12 @@ export const getOffer = asyncHandler(async (req: Request, res: Response) => {
 
 export const addAnimal = asyncHandler(async (req: Request, res: Response) => {
   const input = req.body as AddAnimalInput;
-  const offer = await offerService.addAnimal(req.breederProfile!.id, req.breederProfile!.breedingName, input);
+  const offer = await offerService.addAnimal(
+    req.breederProfile!.id,
+    req.breederProfile!.breedingName,
+    input,
+    getUploadedFiles(req),
+  );
   res.status(HttpStatus.CREATED).json({ offer: toPublicOffer(offer) });
 });
 

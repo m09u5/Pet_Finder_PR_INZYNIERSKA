@@ -1,6 +1,12 @@
 import { imageRepository, offerRepository } from "../config/repositories";
+import type { StoredImage } from "../repositories/image.repository";
 import { requireFound } from "../utils/validators/found.validators";
-import { assertHasFiles, assertImageOwner, requireImageType } from "../utils/validators/image.validators";
+import {
+  assertHasFiles,
+  assertImageOwner,
+  assertNotLastAnimalImage,
+  requireImageType,
+} from "../utils/validators/image.validators";
 import { assertOfferOwner, requireAnimalInOffer } from "../utils/validators/offer.validators";
 import { deleteImage as deleteStoredImage, uploadImage } from "./storage.service";
 
@@ -23,6 +29,9 @@ export async function addAnimalImages(
 export async function deleteOwnedImage(imageId: string, breederId: string) {
   const image = requireFound(await imageRepository.findByIdWithOwner(imageId), "Zdjęcie nie istnieje");
   assertImageOwner(image, breederId);
+  if (image.animalId) {
+    assertNotLastAnimalImage(await imageRepository.countByAnimalId(image.animalId));
+  }
   await deleteStoredImage(image.storagePath);
   await imageRepository.delete(imageId);
 }
@@ -33,14 +42,27 @@ async function getOwnedOffer(offerId: string, breederId: string) {
   return offer;
 }
 
-async function saveFiles(files: Express.Multer.File[], target: { offerId?: string; animalId?: string }) {
-  assertHasFiles(files);
+export async function saveWithStoredImages<T>(
+  files: Express.Multer.File[],
+  save: (images: StoredImage[]) => Promise<T>,
+) {
+  const checked = files.map((file) => ({ buffer: file.buffer, ...requireImageType(file) }));
+  const stored: StoredImage[] = [];
 
-  const images = [];
-  for (const file of files) {
-    const { extension, mimeType } = requireImageType(file);
-    const uploaded = await uploadImage(file.buffer, extension, mimeType);
-    images.push(await imageRepository.create({ ...target, url: uploaded.url, storagePath: uploaded.storagePath }));
+  try {
+    for (const { buffer, extension, mimeType } of checked) {
+      stored.push(await uploadImage(buffer, extension, mimeType));
+    }
+    return await save(stored);
+  } catch (error) {
+    await Promise.allSettled(stored.map((image) => deleteStoredImage(image.storagePath)));
+    throw error;
   }
-  return images;
+}
+
+function saveFiles(files: Express.Multer.File[], target: { offerId?: string; animalId?: string }) {
+  assertHasFiles(files);
+  return saveWithStoredImages(files, (images) =>
+    imageRepository.createMany(images.map((image) => ({ ...target, ...image }))),
+  );
 }

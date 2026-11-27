@@ -2,9 +2,15 @@ import type { ImageWithOwner } from "../../repositories/image.repository";
 import { BadRequestError, ForbiddenError } from "../AppError";
 import { detectImageType } from "../imageType";
 
-export function assertHasFiles(files: Express.Multer.File[]) {
+export function assertHasFiles(files: Express.Multer.File[], message = "Nie przesłano żadnego pliku") {
   if (files.length === 0) {
-    throw new BadRequestError("Nie przesłano żadnego pliku", "NO_FILES");
+    throw new BadRequestError(message, "NO_FILES");
+  }
+}
+
+export function assertNotLastAnimalImage(imageCount: number) {
+  if (imageCount <= 1) {
+    throw new BadRequestError("Zwierzę musi mieć co najmniej jedno zdjęcie", "LAST_ANIMAL_IMAGE");
   }
 }
 

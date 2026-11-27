@@ -2,8 +2,8 @@ import { afterAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/app";
 import { prisma } from "../src/config/prisma";
-import { deleteImage } from "../src/services/storage.service";
 import { hashPassword } from "../src/utils/password";
+import { JPEG_BYTES, postAnimal, removeUploadedFiles } from "./helpers/animals";
 
 const app = createApp();
 const createdEmails: string[] = [];
@@ -44,32 +44,21 @@ async function createVerifiedBreederWithOffer(label: string) {
     },
   });
   const agent = await loginAgent(email, password);
-  const createResponse = await agent.post("/api/offers").send({
-    animal: {
+  const createResponse = await postAnimal(agent, {
       name: "Luna",
       species: "cat",
       breed: "Ragdoll",
       sex: "FEMALE",
       birthDate: "2024-03-15",
       price: 3500,
-    },
-  });
+    });
   return { email, password, user, profile, agent, offer: createResponse.body.offer };
 }
 
-const JPEG_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
 const NOT_AN_IMAGE = Buffer.from("this is definitely not an image file");
 
-async function removeUploadedFiles() {
-  const testBreeder = { breeder: { user: { email: { in: createdEmails } } } };
-  const images = await prisma.image.findMany({
-    where: { OR: [{ offer: testBreeder }, { animal: testBreeder }] },
-  });
-  await Promise.all(images.map((image) => deleteImage(image.storagePath)));
-}
-
 afterAll(async () => {
-  await removeUploadedFiles();
+  await removeUploadedFiles(createdEmails);
   await prisma.user.deleteMany({ where: { email: { in: createdEmails } } });
   await prisma.$disconnect();
 });
@@ -139,9 +128,46 @@ describe("POST /api/offers/:id/animals/:animalId/images", () => {
 
     const offerResponse = await request(app).get(`/api/offers/${breeder.offer.id}`);
     const animal = offerResponse.body.offer.animals.find((a: { id: string }) => a.id === animalId);
-    expect(animal.images).toHaveLength(1);
+    expect(animal.images).toHaveLength(2);
     expect(animal.images[0].id).not.toBe("placeholder");
     expect(offerResponse.body.offer.images[0].id).toBe("placeholder");
+  });
+});
+
+describe("animal photos", () => {
+  it("does not allow deleting the last photo of an animal", async () => {
+    const breeder = await createVerifiedBreederWithOffer("last-photo");
+    const imageId = breeder.offer.animals[0].images[0].id;
+
+    const response = await breeder.agent.delete(`/api/images/${imageId}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("LAST_ANIMAL_IMAGE");
+    expect(await prisma.image.count({ where: { id: imageId } })).toBe(1);
+  });
+
+  it("allows deleting an animal photo once another one exists", async () => {
+    const breeder = await createVerifiedBreederWithOffer("replace-photo");
+    const animal = breeder.offer.animals[0];
+    await breeder.agent
+      .post(`/api/offers/${breeder.offer.id}/animals/${animal.id}/images`)
+      .attach("images", JPEG_BYTES, "second.jpg");
+
+    const response = await breeder.agent.delete(`/api/images/${animal.images[0].id}`);
+
+    expect(response.status).toBe(204);
+  });
+
+  it("saves none of the files when one of them is not an image", async () => {
+    const breeder = await createVerifiedBreederWithOffer("partial-upload");
+
+    const response = await breeder.agent
+      .post(`/api/offers/${breeder.offer.id}/images`)
+      .attach("images", JPEG_BYTES, "good.jpg")
+      .attach("images", NOT_AN_IMAGE, "bad.jpg");
+
+    expect(response.status).toBe(400);
+    expect(await prisma.image.count({ where: { offerId: breeder.offer.id } })).toBe(0);
   });
 });
 

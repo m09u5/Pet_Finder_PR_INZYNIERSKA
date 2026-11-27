@@ -3,6 +3,7 @@ import request from "supertest";
 import { createApp } from "../src/app";
 import { prisma } from "../src/config/prisma";
 import { hashPassword } from "../src/utils/password";
+import { JPEG_BYTES, postAnimal, removeUploadedFiles } from "./helpers/animals";
 
 const app = createApp();
 const createdEmails: string[] = [];
@@ -104,6 +105,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await removeUploadedFiles(createdEmails);
   await prisma.user.deleteMany({ where: { email: { in: createdEmails } } });
   await prisma.$disconnect();
 });
@@ -111,14 +113,14 @@ afterAll(async () => {
 describe("POST /api/offers", () => {
   it("returns 403 for a CUSTOMER", async () => {
     const agent = await loginAgent(customerEmail, customerPassword);
-    const response = await agent.post("/api/offers").send({ animal: animalPayload });
+    const response = await postAnimal(agent, animalPayload);
     expect(response.status).toBe(403);
     expect(response.body.error.code).toBe("INSUFFICIENT_ROLE");
   });
 
   it("returns 403 for a BREEDER pending verification", async () => {
     const agent = await loginAgent(pendingBreederEmail, pendingBreederPassword);
-    const response = await agent.post("/api/offers").send({ animal: animalPayload });
+    const response = await postAnimal(agent, animalPayload);
     expect(response.status).toBe(403);
     expect(response.body.error.code).toBe("BREEDER_NOT_VERIFIED");
   });
@@ -127,7 +129,7 @@ describe("POST /api/offers", () => {
     const breeder = await createVerifiedBreeder("create");
     const agent = await loginAgent(breeder.email, breeder.password);
 
-    const response = await agent.post("/api/offers").send({ animal: animalPayload });
+    const response = await postAnimal(agent, animalPayload);
 
     expect(response.status).toBe(201);
     expect(response.body.offer.title).toBe(`Zwierzęta z hodowli ${breeder.profile.breedingName}`);
@@ -136,16 +138,41 @@ describe("POST /api/offers", () => {
     expect(response.body.offer.animals[0].breed).toBe("Ragdoll");
     expect(response.body.offer.animals[0].price).toBe(3500);
     expect(response.body.offer.images).toEqual([{ id: "placeholder", url: "/placeholder-pet.jpeg" }]);
+    expect(response.body.offer.animals[0].images).toHaveLength(1);
+    expect(response.body.offer.animals[0].images[0].id).not.toBe("placeholder");
+  });
+
+  it("rejects an animal without a valid photo or data and creates nothing", async () => {
+    const breeder = await createVerifiedBreeder("no-photo");
+    const agent = await loginAgent(breeder.email, breeder.password);
+    const animal = JSON.stringify(animalPayload);
+
+    const asJson = await agent.post("/api/offers").send({ animal: animalPayload });
+    const withoutFile = await agent.post("/api/offers").field("animal", animal);
+    const notAnImage = await agent
+      .post("/api/offers")
+      .field("animal", animal)
+      .attach("images", Buffer.from("definitely not an image"), "photo.jpg");
+    const brokenData = await agent.post("/api/offers").field("animal", "{").attach("images", JPEG_BYTES, "photo.jpg");
+
+    expect([asJson, withoutFile, notAnImage, brokenData].map((response) => response.status)).toEqual([
+      400, 400, 400, 400,
+    ]);
+    expect([asJson, withoutFile, notAnImage, brokenData].map((response) => response.body.error.code)).toEqual([
+      "NO_FILES",
+      "NO_FILES",
+      "INVALID_FILE_TYPE",
+      "INVALID_JSON",
+    ]);
+    expect(await prisma.offer.count({ where: { breederId: breeder.profile.id } })).toBe(0);
   });
 
   it("adds a second animal to the same, already-existing Offer instead of creating a new one", async () => {
     const breeder = await createVerifiedBreeder("second-animal");
     const agent = await loginAgent(breeder.email, breeder.password);
 
-    const first = await agent.post("/api/offers").send({ animal: animalPayload });
-    const second = await agent.post("/api/offers").send({
-      animal: { ...animalPayload, name: "Max", sex: "MALE", price: 4000 },
-    });
+    const first = await postAnimal(agent, animalPayload);
+    const second = await postAnimal(agent, { ...animalPayload, name: "Max", sex: "MALE", price: 4000 });
 
     expect(second.status).toBe(201);
     expect(second.body.offer.id).toBe(first.body.offer.id);
@@ -159,9 +186,7 @@ describe("POST /api/offers", () => {
     const breeder = await createVerifiedBreeder("invalid-payload");
     const agent = await loginAgent(breeder.email, breeder.password);
 
-    const response = await agent.post("/api/offers").send({
-      animal: { ...animalPayload, price: -5 },
-    });
+    const response = await postAnimal(agent, { ...animalPayload, price: -5 });
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe("VALIDATION_ERROR");
@@ -170,11 +195,9 @@ describe("POST /api/offers", () => {
   it("rejects adding an animal of a different species to an existing, single-species offer", async () => {
     const breeder = await createVerifiedBreeder("species-guard");
     const agent = await loginAgent(breeder.email, breeder.password);
-    await agent.post("/api/offers").send({ animal: { ...animalPayload, species: "cat" } });
+    await postAnimal(agent, { ...animalPayload, species: "cat" });
 
-    const response = await agent.post("/api/offers").send({
-      animal: { ...animalPayload, name: "Rex", species: "dog" },
-    });
+    const response = await postAnimal(agent, { ...animalPayload, name: "Rex", species: "dog" });
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe("SPECIES_MISMATCH");
@@ -190,10 +213,10 @@ describe("GET /api/offers - filtering, sorting, pagination", () => {
     const matching = await createVerifiedBreeder("species-filter-match");
     const other = await createVerifiedBreeder("species-filter-other");
     await loginAgent(matching.email, matching.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species } }),
+      postAnimal(agent, { ...animalPayload, species }),
     );
     await loginAgent(other.email, other.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species: uniqueSpecies("chomik") } }),
+      postAnimal(agent, { ...animalPayload, species: uniqueSpecies("chomik") }),
     );
 
     const response = await request(app).get("/api/offers").query({ species });
@@ -208,10 +231,10 @@ describe("GET /api/offers - filtering, sorting, pagination", () => {
     const cheap = await createVerifiedBreeder("price-filter-cheap");
     const pricey = await createVerifiedBreeder("price-filter-pricey");
     await loginAgent(cheap.email, cheap.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species, price: 100 } }),
+      postAnimal(agent, { ...animalPayload, species, price: 100 }),
     );
     await loginAgent(pricey.email, pricey.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species, price: 900 } }),
+      postAnimal(agent, { ...animalPayload, species, price: 900 }),
     );
 
     const response = await request(app).get("/api/offers").query({ species, minPrice: 500, maxPrice: 1000 });
@@ -225,10 +248,10 @@ describe("GET /api/offers - filtering, sorting, pagination", () => {
     const male = await createVerifiedBreeder("sex-filter-male");
     const female = await createVerifiedBreeder("sex-filter-female");
     await loginAgent(male.email, male.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species, sex: "MALE" } }),
+      postAnimal(agent, { ...animalPayload, species, sex: "MALE" }),
     );
     await loginAgent(female.email, female.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species, sex: "FEMALE" } }),
+      postAnimal(agent, { ...animalPayload, species, sex: "FEMALE" }),
     );
 
     const response = await request(app).get("/api/offers").query({ species, sex: "MALE" });
@@ -240,7 +263,7 @@ describe("GET /api/offers - filtering, sorting, pagination", () => {
   it("matches a keyword against the breeding name", async () => {
     const breeder = await createVerifiedBreeder("keyword");
     const agent = await loginAgent(breeder.email, breeder.password);
-    await agent.post("/api/offers").send({ animal: { ...animalPayload, species: uniqueSpecies("keyword-animal") } });
+    await postAnimal(agent, { ...animalPayload, species: uniqueSpecies("keyword-animal") });
 
     const response = await request(app).get("/api/offers").query({ q: breeder.profile.breedingName });
     const ids = response.body.items.map((item: { breederId: string }) => item.breederId);
@@ -251,7 +274,7 @@ describe("GET /api/offers - filtering, sorting, pagination", () => {
     const label = `species-keyword-${Date.now()}`;
     const breeder = await createVerifiedBreeder(label);
     const agent = await loginAgent(breeder.email, breeder.password);
-    await agent.post("/api/offers").send({ animal: { ...animalPayload, species: "cat" } });
+    await postAnimal(agent, { ...animalPayload, species: "cat" });
 
     const search = async (params: Record<string, string>) => {
       const response = await request(app).get("/api/offers").query({ limit: 100, ...params });
@@ -271,10 +294,10 @@ describe("GET /api/offers - filtering, sorting, pagination", () => {
     const expensive = await createVerifiedBreeder("sort-expensive");
     const cheap = await createVerifiedBreeder("sort-cheap");
     await loginAgent(expensive.email, expensive.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species, price: 800 } }),
+      postAnimal(agent, { ...animalPayload, species, price: 800 }),
     );
     await loginAgent(cheap.email, cheap.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species, price: 100 } }),
+      postAnimal(agent, { ...animalPayload, species, price: 100 }),
     );
 
     const asc = await request(app).get("/api/offers").query({ species, sort: "price_asc" });
@@ -291,10 +314,10 @@ describe("GET /api/offers - filtering, sorting, pagination", () => {
     const near = await createVerifiedBreeder("geo-near");
     const far = await createVerifiedBreeder("geo-far");
     await loginAgent(near.email, near.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species } }),
+      postAnimal(agent, { ...animalPayload, species }),
     );
     await loginAgent(far.email, far.password).then((agent) =>
-      agent.post("/api/offers").send({ animal: { ...animalPayload, species } }),
+      postAnimal(agent, { ...animalPayload, species }),
     );
     await setBreederLocation(near.profile.id, 51.1079, 17.0385); // Wrocław
     await setBreederLocation(far.profile.id, 52.2297, 21.0122); // Warszawa (~290km away)
@@ -327,7 +350,7 @@ describe("GET /api/offers - filtering, sorting, pagination", () => {
     for (const label of ["page-a", "page-b", "page-c"]) {
       const breeder = await createVerifiedBreeder(label);
       const agent = await loginAgent(breeder.email, breeder.password);
-      await agent.post("/api/offers").send({ animal: { ...animalPayload, species } });
+      await postAnimal(agent, { ...animalPayload, species });
     }
 
     const firstPage = await request(app).get("/api/offers").query({ species, limit: 2, page: 1 });
@@ -343,7 +366,7 @@ describe("GET /api/offers and /api/offers/:id", () => {
   it("lists only ACTIVE offers publicly and includes the placeholder image", async () => {
     const breeder = await createVerifiedBreeder("list");
     const agent = await loginAgent(breeder.email, breeder.password);
-    const createResponse = await agent.post("/api/offers").send({ animal: animalPayload });
+    const createResponse = await postAnimal(agent, animalPayload);
 
     const response = await request(app).get("/api/offers");
     expect(response.status).toBe(200);
@@ -356,7 +379,7 @@ describe("GET /api/offers and /api/offers/:id", () => {
   it("returns a single offer by id with its animals", async () => {
     const breeder = await createVerifiedBreeder("detail");
     const agent = await loginAgent(breeder.email, breeder.password);
-    const createResponse = await agent.post("/api/offers").send({ animal: animalPayload });
+    const createResponse = await postAnimal(agent, animalPayload);
 
     const response = await request(app).get(`/api/offers/${createResponse.body.offer.id}`);
     expect(response.status).toBe(200);
@@ -373,7 +396,7 @@ describe("PUT /api/offers/:id/animals/:animalId", () => {
   it("returns 403 when a different breeder tries to edit the animal", async () => {
     const owner = await createVerifiedBreeder("owner");
     const ownerAgent = await loginAgent(owner.email, owner.password);
-    const createResponse = await ownerAgent.post("/api/offers").send({ animal: animalPayload });
+    const createResponse = await postAnimal(ownerAgent, animalPayload);
     const animalId = createResponse.body.offer.animals[0].id;
 
     const intruder = await createVerifiedBreeder("intruder");
@@ -389,7 +412,7 @@ describe("PUT /api/offers/:id/animals/:animalId", () => {
   it("lets the owner update an animal's price and fields", async () => {
     const breeder = await createVerifiedBreeder("editor");
     const agent = await loginAgent(breeder.email, breeder.password);
-    const createResponse = await agent.post("/api/offers").send({ animal: animalPayload });
+    const createResponse = await postAnimal(agent, animalPayload);
     const animalId = createResponse.body.offer.animals[0].id;
 
     const response = await agent
@@ -407,7 +430,7 @@ describe("DELETE /api/offers/:id", () => {
   it("deactivates the offer and removes it from the public listing", async () => {
     const breeder = await createVerifiedBreeder("deactivate");
     const agent = await loginAgent(breeder.email, breeder.password);
-    const createResponse = await agent.post("/api/offers").send({ animal: animalPayload });
+    const createResponse = await postAnimal(agent, animalPayload);
     const offerId = createResponse.body.offer.id;
 
     const deleteResponse = await agent.delete(`/api/offers/${offerId}`);
@@ -434,8 +457,8 @@ describe("GET /api/offers/mine", () => {
   it("returns the breeder's own offer with all its animals", async () => {
     const breeder = await createVerifiedBreeder("mine");
     const agent = await loginAgent(breeder.email, breeder.password);
-    await agent.post("/api/offers").send({ animal: animalPayload });
-    await agent.post("/api/offers").send({ animal: { ...animalPayload, name: "Max", price: 4000 } });
+    await postAnimal(agent, animalPayload);
+    await postAnimal(agent, { ...animalPayload, name: "Max", price: 4000 });
 
     const response = await agent.get("/api/offers/mine");
     expect(response.status).toBe(200);

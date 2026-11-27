@@ -5,15 +5,19 @@ export type ImageWithOwner = Image & {
   animal: (Animal & { offer: Offer }) | null;
 };
 
-export interface NewImage {
-  offerId?: string;
-  animalId?: string;
+export interface StoredImage {
   url: string;
   storagePath: string;
 }
 
+export interface NewImage extends StoredImage {
+  offerId?: string;
+  animalId?: string;
+}
+
 export interface ImageRepository {
   findByIdWithOwner(id: string): Promise<ImageWithOwner | null>;
-  create(image: NewImage): Promise<Image>;
+  countByAnimalId(animalId: string): Promise<number>;
+  createMany(images: NewImage[]): Promise<Image[]>;
   delete(id: string): Promise<void>;
 }

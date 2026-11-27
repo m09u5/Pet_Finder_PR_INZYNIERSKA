@@ -29,6 +29,7 @@ export function AnimalListItem({ offerId, animal, editable }: AnimalListItemProp
             alt={animal.name}
             editable={editable}
             uploadUrl={`/api/offers/${offerId}/animals/${animal.id}/images`}
+            minImages={1}
           />
           <AnimalDetails animal={animal} />
           <AnimalActions animal={animal} editable={editable} onEditAction={controller.startEditing} />

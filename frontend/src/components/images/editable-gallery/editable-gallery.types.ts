@@ -5,4 +5,5 @@ export interface EditableGalleryProps {
   alt: string;
   editable: boolean;
   uploadUrl: string;
+  minImages?: number;
 }

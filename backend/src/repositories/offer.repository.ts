@@ -1,6 +1,7 @@
 import type { Animal, BreederProfile, Image, Offer } from "@prisma/client";
 import type { AnimalSex, OfferStatus } from "@pet-finder/shared";
 import type { Coordinates } from "./breeder.repository";
+import type { StoredImage } from "./image.repository";
 
 export type AnimalWithImages = Animal & { images: Image[] };
 
@@ -52,6 +53,7 @@ export interface NewOffer {
   breederId: string;
   title: string;
   animal: AnimalFields;
+  images: StoredImage[];
 }
 
 export interface OfferRepository {
@@ -60,7 +62,7 @@ export interface OfferRepository {
   search(criteria: OfferSearchCriteria): Promise<OfferWithRelations[]>;
   getDistancesForBreeders(breederIds: string[], origin: Coordinates): Promise<BreederDistance[]>;
   createWithAnimal(offer: NewOffer): Promise<OfferWithRelations>;
-  addAnimal(offerId: string, breederId: string, animal: AnimalFields): Promise<Animal>;
+  addAnimal(offerId: string, breederId: string, animal: AnimalFields, images: StoredImage[]): Promise<Animal>;
   updateAnimal(animalId: string, patch: Partial<AnimalFields>): Promise<Animal>;
   updateStatus(id: string, status: OfferStatus): Promise<OfferWithRelations>;
 }
