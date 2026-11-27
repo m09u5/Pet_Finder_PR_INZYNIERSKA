@@ -5,7 +5,7 @@ export interface BreederHeaderProps {
   verificationStatus: VerificationStatus;
   street: string;
   city: string;
-  postalCode: string;
   description: string | null;
+  logoUrl: string | null;
   editable?: boolean;
 }

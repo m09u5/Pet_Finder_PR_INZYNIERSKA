@@ -17,6 +17,7 @@ export type OfferWithRelations = Offer & {
     | "street"
     | "city"
     | "postalCode"
+    | "logoUrl"
     | "latitude"
     | "longitude"
     | "verificationStatus"

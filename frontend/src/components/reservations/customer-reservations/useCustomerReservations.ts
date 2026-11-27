@@ -6,7 +6,7 @@ const QUERY_KEY = "my-reservations";
 
 export function useCustomerReservations(): UseCustomerReservationsResult {
   const query = useReservationsQuery(QUERY_KEY, "/api/reservations/mine");
-  const cancelMutation = useReservationAction("cancel", QUERY_KEY);
+  const cancelMutation = useReservationAction("cancel");
 
   return {
     ...query,

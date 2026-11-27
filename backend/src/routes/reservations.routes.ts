@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { UserRole, createReservationSchema } from "@pet-finder/shared";
+import { UserRole, createReservationSchema, payReservationSchema } from "@pet-finder/shared";
 import * as reservationsController from "../controllers/reservations.controller";
 import { authenticate } from "../middleware/authenticate";
 import { authorize } from "../middleware/authorize";
@@ -24,6 +24,16 @@ reservationsRouter.get(
   authorize(UserRole.BREEDER),
   attachBreederProfile,
   reservationsController.listIncomingReservations,
+);
+
+reservationsRouter.get("/:id", authenticate, authorize(UserRole.CUSTOMER), reservationsController.getMyReservation);
+
+reservationsRouter.patch(
+  "/:id/pay",
+  authenticate,
+  authorize(UserRole.CUSTOMER),
+  validateBody(payReservationSchema),
+  reservationsController.payReservation,
 );
 
 reservationsRouter.patch(

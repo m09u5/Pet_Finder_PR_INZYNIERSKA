@@ -1,11 +1,18 @@
-import type { CreateReservationInput } from "@pet-finder/shared";
+import type { CreateReservationInput, PayReservationInput } from "@pet-finder/shared";
 import { reservationRepository } from "../config/repositories";
+import { calculateDeposit } from "../utils/reservationDeposit";
+import { getExpiryCutoff } from "../utils/reservationExpiry";
 import { requireFound } from "../utils/validators/found.validators";
 import {
   assertAnimalReservable,
+  assertPaid,
+  assertPaymentWindowOpen,
   assertPending,
   assertReservationAccess,
   assertReservationOfBreeder,
+  assertReservationOfCustomer,
+  assertStatusChanged,
+  assertUnpaid,
 } from "../utils/validators/reservation.validators";
 
 export async function createReservation(customerId: string, input: CreateReservationInput) {
@@ -21,11 +28,38 @@ export function listIncomingReservations(breederId: string) {
   return reservationRepository.listForBreeder(breederId);
 }
 
+export async function getMyReservation(reservationId: string, customerId: string) {
+  const reservation = await getReservationById(reservationId);
+  assertReservationOfCustomer(reservation, customerId);
+  return reservation;
+}
+
+export async function payReservation(reservationId: string, customerId: string, input: PayReservationInput) {
+  const reservation = await getMyReservation(reservationId, customerId);
+  assertPending(reservation, "Można opłacić tylko aktywną rezerwację");
+  assertUnpaid(reservation);
+  assertPaymentWindowOpen(reservation);
+
+  const paidAt = new Date();
+  const payment = {
+    pickupDate: new Date(input.pickupDate),
+    depositAmount: calculateDeposit(reservation.animal.price.toNumber()),
+    paidAt,
+  };
+  assertStatusChanged(await reservationRepository.pay(reservationId, payment, getExpiryCutoff(paidAt)));
+  return getReservationById(reservationId);
+}
+
+export function expireUnpaidReservations() {
+  return reservationRepository.expireUnpaid(getExpiryCutoff());
+}
+
 export async function confirmReservation(reservationId: string, breederId: string) {
   const reservation = await getReservationById(reservationId);
   assertReservationOfBreeder(reservation, breederId);
   assertPending(reservation, "Można potwierdzić tylko oczekującą rezerwację");
-  await reservationRepository.confirm(reservation);
+  assertPaid(reservation);
+  assertStatusChanged(await reservationRepository.confirm(reservation));
   return getReservationById(reservationId);
 }
 
@@ -33,7 +67,7 @@ export async function cancelReservation(reservationId: string, customerId: strin
   const reservation = await getReservationById(reservationId);
   assertReservationAccess(reservation, customerId, breederId);
   assertPending(reservation, "Można anulować tylko oczekującą rezerwację");
-  await reservationRepository.cancel(reservation);
+  assertStatusChanged(await reservationRepository.cancel(reservation));
   return getReservationById(reservationId);
 }
 

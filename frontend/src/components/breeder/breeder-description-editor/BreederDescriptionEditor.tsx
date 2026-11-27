@@ -11,7 +11,7 @@ export function BreederDescriptionEditor({
   onCancelAction,
 }: BreederDescriptionEditorProps) {
   return (
-    <div className="flex flex-col gap-2 mt-2">
+    <div className="flex flex-col gap-2">
       <textarea
         value={draft}
         onChange={(event) => onChangeAction(event.target.value)}

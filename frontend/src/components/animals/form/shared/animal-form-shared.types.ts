@@ -8,6 +8,8 @@ export interface AnimalFormState {
   breed: string;
   sex: AnimalSex;
   birthDate: string;
+  motherName: string;
+  fatherName: string;
 }
 
 export type AnimalFormChangeHandler = <K extends keyof AnimalFormState>(field: K, value: AnimalFormState[K]) => void;

@@ -1,5 +1,6 @@
 import { imageRepository, offerRepository } from "../config/repositories";
 import type { StoredImage } from "../repositories/image.repository";
+import { ANIMAL_AND_OFFER_IMAGES_FOLDER } from "../utils/storageFolders";
 import { requireFound } from "../utils/validators/found.validators";
 import {
   assertHasFiles,
@@ -45,13 +46,14 @@ async function getOwnedOffer(offerId: string, breederId: string) {
 export async function saveWithStoredImages<T>(
   files: Express.Multer.File[],
   save: (images: StoredImage[]) => Promise<T>,
+  folder: string = ANIMAL_AND_OFFER_IMAGES_FOLDER,
 ) {
   const checked = files.map((file) => ({ buffer: file.buffer, ...requireImageType(file) }));
   const stored: StoredImage[] = [];
 
   try {
     for (const { buffer, extension, mimeType } of checked) {
-      stored.push(await uploadImage(buffer, extension, mimeType));
+      stored.push(await uploadImage(buffer, extension, mimeType, folder));
     }
     return await save(stored);
   } catch (error) {

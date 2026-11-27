@@ -18,6 +18,7 @@ const offerInclude = {
       street: true,
       city: true,
       postalCode: true,
+      logoUrl: true,
       latitude: true,
       longitude: true,
       verificationStatus: true,

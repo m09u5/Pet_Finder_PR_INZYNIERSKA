@@ -13,8 +13,8 @@ export function MessageBreederButton({ offerId }: MessageBreederButtonProps) {
   if (user?.role !== "CUSTOMER") return null;
 
   return (
-    <div className="mb-6">
-      <button type="button" onClick={start} disabled={starting} className={buttonClass({ variant: "outline" })}>
+    <div>
+      <button type="button" onClick={start} disabled={starting} className={buttonClass({ fullWidth: true })}>
         {starting ? "Otwieranie..." : "Napisz do hodowcy"}
       </button>
       {error && <p className={clsx(errorTextClass, "mt-1")}>{error}</p>}

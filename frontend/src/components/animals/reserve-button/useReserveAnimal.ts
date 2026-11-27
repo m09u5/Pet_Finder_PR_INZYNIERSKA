@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { useInvalidateOffers } from "@/hooks/useInvalidateOffers";
+import { useRouter } from "next/navigation";
+import type { PublicReservation } from "@pet-finder/shared";
+import { useInvalidateReservations } from "@/components/reservations/shared/useInvalidateReservations";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { UseReserveAnimalResult } from "./reserve-button.types";
 
 export function useReserveAnimal(animalId: string): UseReserveAnimalResult {
-  const invalidateOffers = useInvalidateOffers();
+  const router = useRouter();
+  const invalidateReservations = useInvalidateReservations();
   const [reserving, setReserving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -12,15 +15,16 @@ export function useReserveAnimal(animalId: string): UseReserveAnimalResult {
     setError(null);
     setReserving(true);
     try {
-      await apiFetch("/api/reservations", {
+      const { reservation } = await apiFetch<{ reservation: PublicReservation }>("/api/reservations", {
         method: "POST",
         body: JSON.stringify({ animalId }),
       });
-      await invalidateOffers();
+      router.push(`/reservations/${reservation.id}`);
+      await invalidateReservations();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Nie udało się zarezerwować zwierzęcia");
-    } finally {
       setReserving(false);
+      await invalidateReservations();
     }
   }
 
